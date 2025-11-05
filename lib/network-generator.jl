@@ -1,1 +1,0 @@
-/Users/skye/Documents/3d - Projects/network-tools/network-generator.jl
