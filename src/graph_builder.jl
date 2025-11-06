@@ -48,60 +48,57 @@ function ζ_2d(L::Int64, ζ::Number, k_avg::Number)
 end
 
 """
-Remove a random portion (1 - `p`) of the existing links in network `g`. If some links have already been removed but not specified, remove a superset of those links.
+Remove a portion of links controlled by `p_list` from network `g` while making sure when more links are removed that the new links are a super set of the previously removed links
 """
-function remove_random_links!(g::Graph, p::Float64, removed_list::Vector{Tuple}=[])
+function remove_links_p_list!(g::Graph; p_min::Float64=0.5, p_max::Float64=1.00, interval::Float64=0.01)
+
+    num_edges = edge_count(g)
     el = edges(g)
-    num_edges = length(el)
-
-    if num_edges == 0
-        return g
-    end
-
-    full_remove_count = ceil((1-p) * num_edges)
-    remove_count = full_remove_count - length(removed_list)
+    h = copy(g)
     
-    for _ = 1:remove_count
+    Δremoved = ceil(interval * num_edges)
+    min_removed = ceil((1 - p_max) * num_edges)
+    max_removed = ceil((1 - p_min) * num_edges)
+    removed_list = []
+
+    graph_list::Vector{Graph} = []
+
+    for _ = 1:min_removed
         link = rand(el)
         while link ∈ removed_list
             link = rand(el)
         end
         push!(removed_list, link)
     end
-    
-    for link in removed_list
+
+    for link ∈ removed_list
         (i, j) = Int.(link)
         remove_link!(g, i, j)
     end
-    return g, removed_list
-end
 
-"""
-Remove a portion of links controlled by `p_list` from network `g` while making sure when more links are removed that the new links are a super set of the previously removed links
-"""
-function remove_random_links_p_list!(g::Graph, p_list::Vector{Float64})
-    graph_copies = [copy(g) for _ = 1:length(p_list)]
-    graph_list = Vector{Graph}(undef, length(p_list))
-    ordered_p_list = sort(p_list, rev=true)
-    removed_list::Vector{Tuple} = []
-    
-    removed_per_p = Vector{Vector{Tuple}}(undef, length(p_list))
-    # removed_add_per_p = Vector{Vector{Tuple}}(undef, length(p_list))
+    pushfirst!(graph_list, copy(h))
 
-    # graph = copy(g)
-    
-    for (i, p) ∈ enumerate(p_list)
-        # graph, removed_list = remove_random_links!(graph, ordered_p_list[i], removed_list)
-        # graph_list[i] = copy(graph)
+    while length(removed_list) ≤ max_removed
+        local additional_removed_list = []
         
-        # local h, removed_list_local, add_removed_list = remove_random_links!(graph_copies[i], p, removed_list)
-        local h, removed_list_local = remove_random_links!(graph_copies[i], p, removed_list)
-        graph_list[i] = h
-        
-        removed_per_p[i] = removed_list_local
-        # removed_add_per_p[i] = add_removed_list
-        removed_list = removed_list_local
+        for _ = 1:Δremoved
+            link = rand(el)
+            while link ∈ removed_list
+                link = rand(el)
+            end
+            push!(removed_list, link)
+            push!(additional_removed_list, link)
+        end
+
+        for link ∈ additional_removed_list
+            (i, j) = Int.(link)
+            remove_link!(h, i, j)
+        end
+
+        pushfirst!(graph_list, copy(h))
     end
 
-    return graph_list, ordered_p_list
+    p_list = range(p_min, step=interval, length=Int.(ceil((p_max-p_min)/interval)))
+    
+    return graph_list, p_list
 end
