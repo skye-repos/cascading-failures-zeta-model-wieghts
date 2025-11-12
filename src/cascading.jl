@@ -21,7 +21,7 @@ function cascade!(
     g::Graph,
     capacities::Vector{Float64},
     weight_function=gaussian_weights,
-    )
+)
 
     N = size(g)
 
@@ -38,7 +38,7 @@ function cascade!(
         end
 
         length(failed_nodes) == 0 ? break : push!(failed_nodes_per_step, failed_nodes)
-        
+
         for node ∈ failed_nodes, neighbor ∈ neighbors(g, node)
             remove_link!(g, node, neighbor)
         end
