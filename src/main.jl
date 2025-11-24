@@ -1,6 +1,5 @@
 using Distributed
 addprocs(4)
-@everywhere include("utility.jl") ## Contains helper functions and miscellaneous items
 @everywhere include("graph_builder.jl") ## Contains the code to generate original graph and remove random links
 @everywhere include("cascading.jl") ## Contains the code to do the cascading
 
@@ -18,8 +17,9 @@ g::Graph = ζ_2d(L, ζ, k);
 
 ## List of θ values to run the simulation for.
 # θ_list = [-0.5, -0.25, 0.25, 0.75, 1.0, 1.5];
-# θ_list = [0.1, 0.25, 0.75, 1.00, 1.25];
-θ_list = [0.25, 0.30, 0.35, 0.40, 0.65];
+# θ_list = [0.1, 0.25, 0.5, 0.75, 1.00, 1.25];
+# θ_list = [0.25, 0.30, 0.35, 0.40, 0.65];
+θ_list = [0.05, 0.20, 0.35, 0.50, 0.65, 0.80, 0.95];
 
 
 ## Setting an appropriate plot range for a given ζ scale
@@ -54,7 +54,7 @@ for (graph, p) ∈ zip(graphs, p_list)
 end
 
 ## We now run the actual simulations parallelized on the CPU
-all_results = pmap(graphs) do graph
+@time all_results = pmap(graphs) do graph
     sol = Vector{Float64}(undef, length(θ_list))
     t_list = Vector{Float64}(undef, length(θ_list))
     for (i, θ) ∈ pairs(θ_list)
@@ -70,7 +70,6 @@ end
 
 S_results = [r[1] for r ∈ all_results];
 t_results = [r[2] for r ∈ all_results];
-
 
 ## Here we store the results in a more usable matrix format. A[i, :] will give the results for the i'th value in the θ_list
 S_matrix = vecvec_to_matrix(S_results)

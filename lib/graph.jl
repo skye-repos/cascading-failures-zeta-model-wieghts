@@ -46,7 +46,7 @@ end
 Average degree of a network `g`
 """
 function k_average(g::Graph)
-	return sum(degrees(g)) / size(g)
+    return sum(degrees(g)) / size(g)
 end
 
 """
@@ -98,37 +98,21 @@ end
 """
 Get the edge-list from the adjacency list of a graph `g`
 """
-function edges(g::Graph)
-    adj = g.adjacency_list
-    N = size(g)
+function edges(g::Graph; directed=false)
+    el = Set{Tuple}()
 
-    el::Vector{Tuple} = []
-
-    for i = 1:N, j=i+1:N
-        if j ∈ adj[i]
-            push!(el, Int.((i, j)))
-        end
+    for node ∈ has_links(g), nbr ∈ neighbors(g, node)
+        directed ? push!(el, (node, nbr)) : push!(el, minmax(node, nbr))
     end
 
-    return el
+    return collect(el)
 end
 
 """
 Count the number of edges in the graph `g`
 """
 function edge_count(g::Graph)
-    adj = g.adjacency_list
-    N = size(g)
-
-    count::Int64 = 0
-    
-    for i = 1:N, j = i+1:N
-        if j ∈ adj[i] || i ∈ adj[j]
-            count += 1
-        end
-    end
-
-    return count
+    return length(edges(g))
 end
 
 """
@@ -142,4 +126,20 @@ function graph_from_edges(el::Vector{Tuple})
         add_link!(g, Int(i), Int(j))
     end
     return g
+end
+
+"""
+Returns a list of nodes that have links in a network `g`
+"""
+function has_links(g::Graph)
+    r = []
+    adj = g.adjacency_list
+
+    for i ∈ eachindex(adj)
+        if adj[i] ≠ []
+            push!(r, i)
+        end
+    end
+        
+    return r
 end

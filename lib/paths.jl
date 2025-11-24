@@ -2,7 +2,7 @@ using Base: between, normalize_typevars
 include("graph.jl")
 using DataStructures
 
-struct DijkstraState{T<:Number, U<:Integer}
+struct DijkstraState{T<:Number,U<:Integer}
     parents::Vector{U}
     dists::Vector{T}
     predecessors::Vector{Vector{U}}
@@ -13,11 +13,11 @@ end
 function dijkstra(
     g::Graph,
     srcs::Vector{U},
-    weights::Matrix{T};
+    weights::AbstractMatrix{T};
     all_paths=false,
     track_vertices=false,
-    maxdist = typemax(T),
-    ) where {T<:Number} where {U<:Integer}
+    maxdist=typemax(T),
+) where {T<:Number} where {U<:Integer}
     N = size(g)
     dists = fill(maxdist, size(g))
     parents = zeros(U, N)
@@ -25,7 +25,7 @@ function dijkstra(
 
     pathcounts = zeros(N)
     preds = fill(Vector{U}(), N)
-    H = PriorityQueue{U, T}()
+    H = PriorityQueue{U,T}()
 
     for src in srcs
         dists[src] = zero(T)
@@ -45,7 +45,7 @@ function dijkstra(
         end
 
         d = dists[u]
-        
+
         for v in neighbors(g, u)
             alt = d + weights[u, v]
 
@@ -68,7 +68,7 @@ function dijkstra(
                 dists[v] = alt
                 parents[v] = u
                 pathcounts[v] = pathcounts[u]
-                
+
                 if all_paths
                     resize!(preds[v], 1)
                     preds[v][1] = u
@@ -123,16 +123,18 @@ function betweenness_centrality(
     nodes::Vector{Int64}=collect(1:size(g)),
     normalize=true,
     end_points=false,
-    )
+)
 
     N = size(g)
     k = length(nodes)
 
     betweenness = zeros(N)
+    preds = [Vector{Vector{Int}}() for _ ∈ 1:N]
 
     for src in nodes
         if degrees(g)[src] > 0
-            state = dijkstra(g, src, weights, all_paths=true, track_vertices=true)
+             state = dijkstra(g, src, weights, all_paths=true, track_vertices=true)
+            preds[src] = state.predecessors
             if end_points
                 _accumulate_endpoints!(betweenness, state, g, src)
             else
@@ -143,7 +145,7 @@ function betweenness_centrality(
 
     _rescale!(betweenness, N, normalize, false, k)
 
-    return betweenness
+    return betweenness, preds
 end
 
 function _accumulate_basic!(
@@ -151,7 +153,7 @@ function _accumulate_basic!(
     state::DijkstraState,
     g::Graph,
     si::Integer
-    )
+)
 
     n_v = size(g)
     δ = zeros(n_v)
@@ -171,9 +173,9 @@ function _accumulate_basic!(
 
         if w != si
             betweenness[w] += δ[w]
-        end        
+        end
     end
-	return nothing
+    return nothing
 end
 
 function _accumulate_endpoints!(
@@ -181,9 +183,9 @@ function _accumulate_endpoints!(
     state::DijkstraState,
     g::Graph,
     si::Integer
-    )
+)
 
-	n_v = size(g)
+    n_v = size(g)
     δ = zeros(n_v)
     σ = state.pathcounts
     P = state.predecessors
@@ -210,12 +212,12 @@ function _rescale!(
     normalize::Bool,
     directed::Bool,
     k::Integer
-    )
+)
 
     scale = nothing
     if normalize
         if 2 < n
-            scale = 1.0 / ((n-1)*(n-2))
+            scale = 1.0 / ((n - 1) * (n - 2))
         end
     elseif !directed
         scale = 0.5
@@ -230,8 +232,67 @@ function _rescale!(
     return nothing
 end
 
-function components(label::Vector{T}) where {T <: Integer}
-    d = Dict{T, T}()
+"""
+update the betweenness centrality incrementally. Call only after network has been updated!!
+"""
+function update_betweenness!(
+    g::Graph,
+    weights::AbstractMatrix,
+    betweenness::AbstractVector,
+    preds::AbstractVector;
+    work_rev::Vector{Vector{Int}},
+    work_aff::Vector{Int},
+    work_vis::Vector{Bool},
+    deleted_list::Vector{Int64},
+    normalize=true,
+    end_points=false,
+)
+    N = size(g)
+
+    fill!(work_vis, false)
+    empty!(work_aff)
+    @inbounds for v ∈ 1:N
+        empty!(work_rev[v])
+    end
+
+    for v ∈ 1:N, u_list ∈ preds[v], u ∈ u_list
+        push!(work_rev[v], u)
+    end
+
+    Q = Queue{Int}()
+    
+    for d ∈ deleted_list
+        work_vis[d] = true
+        enqueue!(Q, d)
+    end
+
+    while !isempty(Q)
+        u = dequeue!(Q)
+        push!(work_aff, u)
+
+        for v ∈ work_rev[u]
+            if !work_vis[v]
+                work_vis[v] = true
+                enqueue!(Q, v)
+            end
+        end
+    end
+
+    new_betw, new_pred = betweenness_centrality(g, weights,
+        nodes=work_aff,
+        normalize=normalize,
+        end_points=end_points)
+
+    for node ∈ work_aff
+        betweenness[node] = new_betw[node]
+        preds[node] = new_pred[node]
+    end
+
+    return nothing
+end
+
+function components(label::Vector{T}) where {T<:Integer}
+    d = Dict{T,T}()
     c = Vector{Vector{T}}()
     i = one(T)
 

@@ -3,12 +3,21 @@ include("../lib/paths.jl")
 using Serialization
 using Tables, CSV
 using Plots
+using SparseArrays
 
 function θ_weights(g::Graph; θ=1.0)
     k = degrees(g)
-    w = [(k[i] * k[j])^θ
-         for i = 1:size(g), j = 1:size(g)]
-    return w
+    N = size(g)
+
+    el = edges(g)
+    w = zeros(Float64, N, N)
+    for (i, j) ∈ el
+        w[i, j] = (k[i] * k[j])^θ
+        w[j, i] = (k[i] * k[j])^θ
+    end
+
+    return sparse(w)
+    
 end
 
 function gaussian_weights(g::Graph; σ=1.0, μ=0.0)

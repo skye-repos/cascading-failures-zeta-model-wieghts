@@ -4,8 +4,8 @@ include("utility.jl")
 Calculate the load on each node of the network `g` using its
 betweenness-centrality given `weights`
 """
-function loads(g::Graph; weights::Matrix{Float64}=gaussian_weights(g))
-    loads = betweenness_centrality(g, weights; normalize=false)
+function loads(g::Graph; weights::AbstractMatrix)
+    loads, _ = betweenness_centrality(g, weights; normalize=false)
     return loads
 end
 
@@ -24,14 +24,12 @@ function cascade!(
 )
 
     N = size(g)
-
     t_step = 1
-
     failed_nodes_per_step::Vector{Vector{Int64}} = []
 
     while true
-        local loads0 = loads(g, weights=weight_function(g))
         local failed_nodes::Vector{Int64} = []
+        local loads0, _ = betweenness_centrality(g, weight_function(g), normalize=false)
 
         for node = 1:N
             loads0[node] > capacities[node] ? push!(failed_nodes, node) : nothing
