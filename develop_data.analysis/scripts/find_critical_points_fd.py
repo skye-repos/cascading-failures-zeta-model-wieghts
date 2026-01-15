@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""For each "Gt Component" CSV: (original docstring trimmed)"""
+"""For each "Gt Component" CSV:"""
 
 import argparse
 from pathlib import Path
@@ -72,7 +72,7 @@ def find_peak_fd(p, y):
         # linear interpolate between the two midpoints' d values
         x = pmid[idxs]
         yy = d[idxs]
-        # find max of linear segment (where derivative is max at endpoint with higher yy), pick more refined via linear interpolation
+        # find max of segment (where derivative is max at endpoint with higher yy),  more refined w linear interpolation
         if abs(yy[1] - yy[0]) < 1e-12:
             p_peak = float(0.5 * (x[0] + x[1]))
         else:
