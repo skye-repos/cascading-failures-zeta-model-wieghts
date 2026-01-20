@@ -60,13 +60,13 @@ function cascade!(graph::Graph, capacity::AbstractVector, weight_function)
     
     while true
         local failed_nodes = Int[]
-        local load = betweenness_centrality_sample(
-            graph, weight_function(graph);
-            k = 500)
-
-        # local load = betweenness_centrality(
+        # local load = betweenness_centrality_sample(
         #     graph, weight_function(graph);
-        #     normalize=false)
+        #     k = k_sample)
+
+        local load = betweenness_centrality(
+            graph, weight_function(graph);
+            normalize=false)
     
         for node ∈ node_list
             load[node] > capacity[node] ? push!(failed_nodes, node) : nothing

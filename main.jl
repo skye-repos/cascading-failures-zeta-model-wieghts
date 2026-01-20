@@ -12,8 +12,8 @@ end
     α::Number=α,
     p_min::Float64=p_min,
     n_pts::Int=n_pts,
-    θ_list::AbstractVector)
-
+    θ_list::AbstractVector,
+    k_sample=Int(round(L^2 / 4)))
 
 Simulate the cascading-failure for a given `graph` and `θ` value.
 """
@@ -33,9 +33,6 @@ function simulate_cascade(
         θ = θ_list[n]
         weight_function(g) = θ_weights(g, θ=θ)
 
-        # capacity = (1 + α) * betweenness_centrality_sample(
-        #     graph, weight_function(graph);
-        #     k = 200)
         capacity = (1 + α) * betweenness_centrality(
             graph, weight_function(graph);
             normalize=false)
@@ -59,15 +56,15 @@ function simulate_cascade(
     return S_results, t_results
 end
 
-const L::Int = 15
-const ζ::Float64 = 1
+const L::Int = 75
+const ζ::Float64 = 10
 const k::Float64 = 5
 const α::Float64 = 2.0
 
 const g::Graph = ζ_sparse_taurus(L, ζ, k);
 const θ_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-const n_pts = 20
+const n_pts = 100
 
 if ζ / L < 0.01
     const p_min = 0.85
