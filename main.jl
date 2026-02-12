@@ -61,7 +61,7 @@ const ζ::Float64 = 10
 const k::Float64 = 5
 const α::Float64 = 2.0
 
-const g::Graph = ζ_sparse_taurus(L, ζ, k);
+const g::Graph = ζ_taurus(L, ζ, k);
 const θ_list = [0.1, 0.3, 0.5, 0.9, 1.2]
 
 const n_pts = 100
