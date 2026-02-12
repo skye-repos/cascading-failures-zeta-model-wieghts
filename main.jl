@@ -26,7 +26,7 @@ function simulate_cascade(
 
     l_θ = length(θ_list)
     rem_list::AbstractVector, chunk::Int = seed_failure(graph, p_min, n_pts)
-    
+
     S_results = SharedArray{Float64}(n_pts, l_θ)
     t_results = SharedArray{Float64}(n_pts, l_θ)
     @sync @distributed for n ∈ 1:l_θ
@@ -56,13 +56,13 @@ function simulate_cascade(
     return S_results, t_results
 end
 
-const L::Int = 75
+const L::Int = 50
 const ζ::Float64 = 10
 const k::Float64 = 5
 const α::Float64 = 2.0
 
 const g::Graph = ζ_sparse_taurus(L, ζ, k);
-const θ_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+const θ_list = [0.1, 0.3, 0.5, 0.9, 1.2]
 
 const n_pts = 100
 
@@ -91,14 +91,14 @@ id_gt = "Gt Component " * join(string.(θ_list), ", ")
 id_ct = "Cascade Time " * join(string.(θ_list), ", ")
 
 write_to_file(S_matrix',
-              file_name = CSV_dir * id_gt * ".csv",
-              header = p_list)
+    file_name=CSV_dir * id_gt * ".csv",
+    header=p_list)
 
 write_to_file(t_matrix',
-              file_name = CSV_dir * id_ct * ".csv",
-              header = p_list)
+    file_name=CSV_dir * id_ct * ".csv",
+    header=p_list)
 
-S_plot = results_plotter(S_matrix, ylabel = "S", title = "Giant component L = $(L), ζ = $(ζ)")
+S_plot = results_plotter(S_matrix, ylabel="S", title="Giant component L = $(L), ζ = $(ζ)")
 savefig(plots_dir * id_gt * ".png")
-t_plot = results_plotter(t_matrix, ylabel = "Cascade Time", title = "Cascade Time L = $(L), ζ = $(ζ)")
+t_plot = results_plotter(t_matrix, ylabel="Cascade Time", title="Cascade Time L = $(L), ζ = $(ζ)")
 savefig(plots_dir * id_ct * ".png")
