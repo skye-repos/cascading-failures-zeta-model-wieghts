@@ -7,7 +7,6 @@ addprocs(8)
     include("utility.jl")
     using SharedArrays
     using Printf
-    using ProgressMeter
 end
 
 """
@@ -37,56 +36,45 @@ function simulate_cascade(
     k_results = SharedArray{Float64}(n_pts, l_θ, round(Int, 10 * k))
     p_results = SharedArray{Float64}(n_pts, l_θ, round(Int, 10 * k))
 
-    ## Progress Bars
-    total_iterations = l_θ * n_pts
-    pbar = Progress(total_iterations; desc="Simulating Cascades...", barlen=50)
-    channel = RemoteChannel(() -> Channel{Bool}(total_iterations))
+    @sync @distributed for i ∈ 1:l_θ
+        θ = θ_list[i]
+        weight_function(g) = θ_weights(g, θ=θ)
 
-    @sync begin
-        @async while take!(channel)
-            next!(pbar)
-        end
+        capacity = (1 + α) * betweenness_centrality(
+            graph, weight_function(graph);
+            normalize=false)
 
-        @distributed for i ∈ 1:l_θ
-            θ = θ_list[i]
-            weight_function(g) = θ_weights(g, θ=θ)
+        for n ∈ 1:n_pts
+            h = copy(graph)
+            removed = rem_list[1:n*chunk]
 
-            capacity = (1 + α) * betweenness_centrality(
-                graph, weight_function(graph);
-                normalize=false)
-
-            for n ∈ 1:n_pts
-                h = copy(graph)
-                removed = rem_list[1:n*chunk]
-
-                for (u, v) ∈ removed
-                    remove_link!(h, u, v)
-                end
-
-                h, t = cascade!(h, capacity, weight_function)
-                S = length(giant_component(h)) / nv(h)
-                kₕ, pₖ = degree_distribution(h)
-                S_results[n, i] = S
-                t_results[n, i] = t
-                if maximum(kₕ) > 10 * k
-                    error("increase max k for distribution")
-                end
-
-                for j ∈ eachindex(kₕ)
-                    k_results[n, i, j] = kₕ[j]
-                    p_results[n, i, j] = pₖ[j]
-                end
-                put!(channel, true)
-                # @info "Finished $(i)/$(n_pts) p values for θ = $(θ)"
+            for (u, v) ∈ removed
+                remove_link!(h, u, v)
             end
+
+            h, t = cascade!(h, capacity, weight_function)
+            S = length(giant_component(h)) / nv(h)
+            kₕ, pₖ = degree_distribution(h)
+            S_results[n, i] = S
+            t_results[n, i] = t
+            if maximum(kₕ) > 10 * k
+                error("increase max k for distribution")
+            end
+
+            for j ∈ eachindex(kₕ)
+                k_results[n, i, j] = kₕ[j]
+                p_results[n, i, j] = pₖ[j]
+            end
+            # @info "$(i)/$(n_pts) p values for θ = $(θ)"
+            @info(@sprintf("%2d/%2d p's, θ = %.2f",
+                           i, n_pts, θ))
         end
-        put!(channel, false)
     end
 
     return S_results, t_results, k_results, p_results
 end
 
-const L::Int = 50
+const L::Int = 75
 const ζ::Float64 = 15
 const k::Float64 = 5
 const α::Float64 = 2.0
@@ -94,7 +82,7 @@ const α::Float64 = 2.0
 const g::Graph = ζ_taurus(L, ζ, k);
 const θ_list = [-0.50, -0.25, 0.25, 0.50]
 
-const n_pts = 50
+const n_pts = 25
 
 if ζ / L < 0.01
     const p_min = 0.85
@@ -134,9 +122,9 @@ colorscheme = [cgrad(:viridis)[z] for z ∈ range(0, 1, length=n_pts)]
 
 for (i, θ) ∈ pairs(θ_list)
     plt = plot(title="θ=$(θ), Comparing pₖ",
-               legend_columns=4,
-               legendfontsize=5,
-               legend = :outerright)
+        legend_columns=4,
+        legendfontsize=5,
+        legend=:outerright)
     for n ∈ 1:n_pts
         local p = reverse(p_list)[n]
         local kₕ = k_matrix[n, i, :]
