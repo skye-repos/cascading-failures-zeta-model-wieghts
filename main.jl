@@ -67,7 +67,7 @@ function simulate_cascade(
             end
             # @info "$(i)/$(n_pts) p values for θ = $(θ)"
             @info(@sprintf("%2d/%2d p's, θ = %.2f",
-                           i, n_pts, θ))
+                i, n_pts, θ))
         end
     end
 
@@ -122,9 +122,10 @@ colorscheme = [cgrad(:viridis)[z] for z ∈ range(0, 1, length=n_pts)]
 
 for (i, θ) ∈ pairs(θ_list)
     plt = plot(title="θ=$(θ), Comparing pₖ",
-        legend_columns=4,
-        legendfontsize=5,
-        legend=:outerright)
+        size=(800, 500),
+        legend_columns=2,
+        legendfontsize=10,
+        legend=:topright)
     for n ∈ 1:n_pts
         local p = reverse(p_list)[n]
         local kₕ = k_matrix[n, i, :]
