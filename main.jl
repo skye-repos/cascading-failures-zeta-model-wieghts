@@ -54,35 +54,43 @@ function simulate_cascade(
 
             h, t = cascade!(h, capacity, weight_function)
             S = length(giant_component(h)) / nv(h)
-            kₕ, pₖ = degree_distribution(h)
-            S_results[n, i] = S
-            t_results[n, i] = t
-            if maximum(kₕ) > 10 * k
-                error("increase max k for distribution")
+            S_results[(n_pts-n+1), i] = S
+            t_results[(n_pts-n+1), i] = t
+
+            kₑ, pₑ = degree_distribution(h)
+            for j ∈ eachindex(kₑ)
+                p_results[(n_pts-n+1), i, j] = pₑ[j]
             end
 
-            for j ∈ eachindex(kₕ)
-                k_results[n, i, j] = kₕ[j]
-                p_results[n, i, j] = pₖ[j]
-            end
-            # @info "$(i)/$(n_pts) p values for θ = $(θ)"
             @info(@sprintf("%2d/%2d p's, θ = %.2f",
-                i, n_pts, θ))
+                n, n_pts, θ))
         end
     end
 
-    return S_results, t_results, k_results, p_results
+    k_max = 0
+    for i ∈ eachindex(θ_list), n ∈ 1:n_pts
+        km = findlast(!iszero, p_results[n, i, :])
+        if km > k_max
+            k_max = km
+        end
+    end
+
+    p_results = p_results[:, :, 1:k_max]
+
+    return S_results, t_results, p_results
 end
 
-const L::Int = 75
+const L::Int = 50
 const ζ::Float64 = 15
 const k::Float64 = 5
 const α::Float64 = 2.0
 
 const g::Graph = ζ_taurus(L, ζ, k);
-const θ_list = [-0.50, -0.25, 0.25, 0.50]
+const θ_list = append!(
+    collect(-0.25:0.05:-0.05),
+    collect(0.05:0.05:1.00))
 
-const n_pts = 25
+const n_pts = 50
 
 if ζ / L < 0.01
     const p_min = 0.85
