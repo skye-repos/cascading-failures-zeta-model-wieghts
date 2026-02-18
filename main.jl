@@ -101,6 +101,10 @@ const p_list = collect(range(p_min, 1.00, n_pts))
 
 @time S_matrix, t_matrix, p_matrix = simulate_cascade(g, θ_list=θ_list)
 
+## Degree vector
+kₘ = size(p_matrix)[3]
+kᵥ = collect(1:kₘ)
+
 CSV_dir = "results/CSV/L = $(L)/ζ = $(ζ), k = $(k), α = $(α)/"
 plots_dir = "results/plots/L = $(L)/ζ = $(ζ), k = $(k), α = $(α)/"
 
@@ -112,59 +116,44 @@ if !ispath(plots_dir)
     mkpath(plots_dir)
 end
 
-id_gt = "0 - Gt Component " * join(string.(θ_list), ", ")
-id_ct = "1 - Cascade Time " * join(string.(θ_list), ", ")
+colorscheme = [cgrad(:viridis)[z] for z ∈ range(0, 1, length=n_pts)]
 
+## Giant Component
+id_gt = " Gt Component " * join(string.(θ_list), ", ") * " ζ = $(ζ) "
 write_to_file(S_matrix,
     file_name=CSV_dir * id_gt * ".csv",
     header=p_list)
-
-write_to_file(t_matrix,
-    file_name=CSV_dir * id_ct * ".csv",
-    header=p_list)
-
 S_plot = results_plotter(S_matrix, ylabel="S", title="Giant component L = $(L), ζ = $(ζ)");
-savefig(plots_dir * id_gt * ".png")
-t_plot = results_plotter(t_matrix, ylabel="Cascade Time", title="Cascade Time L = $(L), ζ = $(ζ)");
-savefig(plots_dir * id_ct * ".png")
-
-colorscheme = [cgrad(:viridis)[z] for z ∈ range(0, 1, length=n_pts)]
+savefig(plots_dir *  "comparison"  * id_gt * ".png")
 
 hmp_S = heatmap(p_list, θ_list, S_matrix',
     c=colorscheme, size=(800, 500),
     title="GC heatmap: L = $(L) ζ = $(ζ)",
     xlabel="p", ylabel="θ")
-savefig(hmp_S, plots_dir * "0 - Gt Component heatmap ζ = $(ζ).png")
+savefig(hmp_S, plots_dir * "heatmap" * id_gt * ".png")
 
+
+## Cascade Time
+id_ct = " Cascade Time " * join(string.(θ_list), ", ") * " ζ = $(ζ) "
+write_to_file(t_matrix,
+    file_name=CSV_dir * id_ct * ".csv",
+    header=p_list)
+t_plot = results_plotter(t_matrix, ylabel="Cascade Time", title="Cascade Time L = $(L), ζ = $(ζ)");
+savefig(plots_dir * "comparison" * id_ct * ".png")
+
+
+## Degree Distributions at each p-value
 for (i, θ) ∈ pairs(θ_list)
-    ## Degree vector
-    kₘ = size(p_matrix)[3]
-    kᵥ = collect(1:kₘ)
-
-    id_p = @sprintf("degree-distribution θ=%.2f, ζ=%.1f",
-        θ, ζ)
-
+    ## Write to file
+    id_pk = "degree-distribution θ=$(θ), ζ=$(ζ)"
     write_to_file(p_matrix[:, i, :],
-        file_name=CSV_dir * id_p * ".csv",
+        file_name=CSV_dir * id_pk * ".csv",
         header=p_list)
 
-    ## Heatmaps
+    ## Heatmap
     hmp = heatmap(kᵥ, p_list, p_matrix[:, i, :],
         c=:viridis, size=(800, 500),
         title="θ=$(θ), Heatmap of final pₖ",
         xlabel="degree", ylabel="p")
-    savefig(hmp, plots_dir * "heatmap-final-dists-θ = $(θ), ζ = $(ζ).png")
-
-    ## Individual Plots
-    plt = plot(title="θ=$(θ), Comparing final pₖ",
-        size=(800, 500), legend_columns=2,
-        legendfontsize=6, legend=:topright)
-
-    for (n, p) ∈ pairs(p_list)
-        local pₖ = p_matrix[n, i, :]
-        plt = plot!(plt, kᵥ, pₖ,
-            color=colorscheme[n],
-            label=@sprintf("p=%.2f", p))
-    end
-    savefig(plt, plots_dir * "comparison-final-dists-θ = $(θ).png")
+    savefig(hmp, plots_dir * "heatmap" * id_pk * ".png")
 end
