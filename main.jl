@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate(".")
 using Distributed
-addprocs(8)
+addprocs(10)
 @everywhere begin
     include("simulate.jl")
     include("utility.jl")
