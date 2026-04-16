@@ -52,7 +52,7 @@ for ζ ∈ ζ_list
         fit = curve_fit(linear, x, y, p0)
         r_sq = r2(y, fit)
         params = coef(fit)
-        vals = [0, x[1], params[2], params[1], r_sq]
+        vals = [θ, x[1], params[2], params[1], r_sq]
         local df_loc = DataFrame([df_names[i] => vals[i] for i ∈ eachindex(vals)])
         append!(df, df_loc)
     end
