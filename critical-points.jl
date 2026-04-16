@@ -38,6 +38,8 @@ function find_critical(row)
         end
     end
 
+    critical_point += 1
+
     return θ, critical_point, p[critical_point]
 end
 
@@ -91,14 +93,14 @@ end
 
 out_csv = "results/CSV/L = 100/values.csv"
 outi_csv = "results/CSV/L = 100/indices.csv"
-# CSV.write(out_csv, df)
+CSV.write(out_csv, df)
 CSV.write(outi_csv, dfi)
 
-# out_plt = "results/plots/L = 100 - values - positive.png"
-# pc_matrix = Matrix(df[3:end, 22:end])
-# plt = heatmap(θ_list[21:end], ζ_list[3:end], pc_matrix,
-#               c=:viridis,
-#               xlabel="θ values",
-#               ylabel="ζ values",
-#               title=L"Heatmap of $p_c$")
-# savefig(plt, out_plt)
+out_plt = "results/plots/L = 100 - values - positive.png"
+pc_matrix = Matrix(df[3:end, 22:end])
+plt = heatmap(θ_list[21:end], ζ_list[3:end], pc_matrix,
+              c=:viridis,
+              xlabel="θ values",
+              ylabel="ζ values",
+              title=L"Heatmap of $p_c$")
+savefig(plt, out_plt)

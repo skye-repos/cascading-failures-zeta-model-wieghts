@@ -61,7 +61,7 @@ r2 = 1 - (ss1 / ss2)
 # Confidence_Interval:
 # $(repr("text/plain", ci))"
 
-# write("positive_theta.txt", pos_fit)
+# write("results/fits/L = 100/p_critical/positive_theta.txt", pos_fit)
 
 # pos_fit_alt = "p_c(θ, ζ) = a*e^(b/ζ + c*θ)
 # a = $(params[1])
@@ -76,7 +76,7 @@ r2 = 1 - (ss1 / ss2)
 # Confidence_Interval:
 # $(repr("text/plain", ci))"
 
-# write("positive_theta_alt.txt", pos_fit_alt)
+# write("results/fits/L = 100/p_critical/positive_theta_alt.txt", pos_fit_alt)
 
 # pos_fit_rat = "p_c(θ, ζ) = a*e^(b*θ/ζ) + c
 # a = $(params[1])
@@ -91,7 +91,7 @@ r2 = 1 - (ss1 / ss2)
 # Confidence_Interval:
 # $(repr("text/plain", ci))"
 
-# write("positive_theta_rat.txt", pos_fit_rat)
+# write("results/fits/L = 100/p_critical/positive_theta_rat.txt", pos_fit_rat)
 
 # neg_fit = "p_c(θ, ζ) = a + b*ζ + c*θ
 # a = $(params[1])
@@ -106,7 +106,7 @@ r2 = 1 - (ss1 / ss2)
 # Confidence_Interval:
 # $(repr("text/plain", ci))"
 
-# write("negative_theta.txt", neg_fit)
+# write("results/fits/L = 100/p_critical/negative_theta.txt", neg_fit)
 
 neg_fit_alt = "p_c(θ, ζ) = a + b/ζ + c*θ
 a = $(params[1])
@@ -121,4 +121,4 @@ $(repr("text/plain", cov))
 Confidence_Interval:
 $(repr("text/plain", ci))"
 
-write("negative_theta_alt.txt", neg_fit_alt)
+write("results/fits/L = 100/p_critical/negative_theta_alt.txt", neg_fit_alt)
