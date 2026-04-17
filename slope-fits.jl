@@ -29,6 +29,10 @@ function quadratic(x, p)
     return p[1] .+ p[2].*x .+ p[3].*x.*x
 end
 
+function critical(x, p)
+    return p[1] .* x .^ p[2]
+end
+
 function r2(y, fit)
     res = residuals(fit)
     ss1 = sum(res.*res)
@@ -39,17 +43,19 @@ function r2(y, fit)
     return 1 - (ss1/ss2)
 end
 
-dir = "results/fits/L = 100/slopes/"
+dir = "results/fits/L = 100/crits/"
 
-df_names = ["θ", "p_c + 0.05", "m (slope)", "b (intercept)", "R2"]
+df_names = ["θ", "p_c + 0.01", "k (proportionality)", "β (exponent)", "R2"]
 p0 = [1.0, 0.5]
 
 for ζ ∈ ζ_list
-    out_file = dir * "linear fits ζ = $(ζ).csv"
+    out_file = dir * "critical exponent ζ = $(ζ).csv"
     df = DataFrame([name => [] for name ∈ df_names])
     for θ ∈ θ_list
         x, y = get_S_and_θ(θ, ζ)
-        fit = curve_fit(linear, x, y, p0)
+        y_diff = y .- y[1]
+        x_diff = x .- x[1]
+        fit = curve_fit(critical, x_diff, y_diff, p0)
         r_sq = r2(y, fit)
         params = coef(fit)
         vals = [θ, x[1], params[2], params[1], r_sq]
