@@ -64,4 +64,4 @@ for i, file in enumerate(files):
     except Exception as e:
         print(f"Error: {file}: {e}")
 
-print("\nDone! 1 combined + 10 individual plots.")
+print("\nDone! combined + individual plots.")
