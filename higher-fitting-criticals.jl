@@ -5,9 +5,9 @@ using DataFrames, CSV
 
 df = CSV.read("results/CSV/L = 100/values.csv", DataFrame)
 
-ζ_list = df[:, 1]
-df_pos = df[:, 22:end]
-df_neg = df[:, 2:21]
+ζ_list = df[3:end, 1]
+df_pos = df[3:end, 22:end]
+df_neg = df[3:end, 2:21]
 θ_pos = parse.(Float64, names(df_pos))
 θ_neg = parse.(Float64, names(df_neg))
 
@@ -58,7 +58,10 @@ function r2(y, fit)
     return 1 - (ss1 / ss2)
 end
 
-dir = "results/fits/L = 100/p_critical-ho/"
+dir = "results/fits/L = 100/p_critical-ho-no-outliers/"
+if !ispath(dir)
+    mkpath(dir)
+end
 
 function fit_and_write(model, x, y, file, eqn)
     p0 = [1.0, 1.0, 1.0, 1.0]

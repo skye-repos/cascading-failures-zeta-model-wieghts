@@ -89,10 +89,17 @@ for ζ ∈ ζ_list[2:end]
     append!(df, df_loc)
     append!(dfi, dfi_loc)
 end
+
 θ_list = parse.(Float64, names(df)[2:end])
 
-out_csv = "results/CSV/L = 100/values.csv"
-outi_csv = "results/CSV/L = 100/indices.csv"
+out_dir = "results/CSV/L = 100/"
+
+if !ispath(out_dir)
+    mkpath(out_dir)
+end
+
+out_csv = out_dir * "p_c(θ, ζ).csv"
+outi_csv = out_dir * "indices.csv"
 CSV.write(out_csv, df)
 CSV.write(outi_csv, dfi)
 

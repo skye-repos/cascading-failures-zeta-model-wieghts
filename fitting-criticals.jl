@@ -5,9 +5,9 @@ using DataFrames, CSV
 
 df = CSV.read("results/CSV/L = 100/values.csv", DataFrame)
 
-ζ_list = df[:, 1]
-df_pos = df[:, 22:end]
-df_neg = df[:, 2:21]
+ζ_list = df[3:end, 1]
+df_pos = df[3:end, 22:end]
+df_neg = df[3:end, 2:21]
 θ_pos = parse.(Float64, names(df_pos))
 θ_neg = parse.(Float64, names(df_neg))
 
@@ -23,7 +23,7 @@ function pos(x, p)
     ζ = x[:, 1]
     θ = x[:, 2]
 
-    return p[1] .* exp.(p[2] ./ ζ .+ p[3] .* θ)
+    return p[1] .* exp.(p[2] ./ ζ .+ p[3] ./ θ)
 end
 
 function pos_alt(x, p)
@@ -106,7 +106,10 @@ function r2(y, fit)
     return 1 - (ss1/ss2)
 end
 
-dir = "results/fits/L = 100/p_critical/"
+dir = "results/fits/L = 100/p_critical-no-outliers/"
+if !ispath(dir)
+    mkpath(dir)
+end
 
 function fit_and_write(model, x, y, file, eqn)
     p0 = [1.0, 1.0, 1.0]
@@ -137,7 +140,7 @@ end
 fit_and_write(pos,
               x_pos_data, pc_pos_vec,
               "θ > 0 v1.txt",
-              "p_c(θ, ζ) = a * exp(b/ζ + c*θ)")
+              "p_c(θ, ζ) = a * exp(b/ζ + c/θ)")
 
 fit_and_write(pos_alt,
               x_pos_data, pc_pos_vec,
