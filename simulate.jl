@@ -82,7 +82,7 @@ function cascade!(graph::Graph, capacity::AbstractVector, weight_function)
             break
         end
 
-        for node ∈ failed_nodes, nbr ∈ neighbors(graph, node)
+        for node ∈ failed_nodes, nbr ∈ Base.copy(neighbors(graph, node))
             remove_link!(graph, node, nbr)
         end
 
