@@ -21,17 +21,30 @@ static std::string fmt_double(double x) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 1 && argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " [L zeta]\n"
-                  << "  Defaults: L=50, zeta=15\n";
-        return 1;
-    }
-
     int L = 50;
     double zeta = 15.0;
-    if (argc == 3) {
-        L = std::stoi(argv[1]);
-        zeta = std::stod(argv[2]);
+    double theta_min = -1.0;
+    double theta_max = 1.0;
+    int N_theta = 21;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        auto next = [&](int i) { return i + 1 < argc ? argv[i + 1] : nullptr; };
+        if ((arg == "-L" || arg == "--L") && next(i)) { L = std::stoi(argv[++i]); }
+        else if ((arg == "-z" || arg == "--zeta") && next(i)) { zeta = std::stod(argv[++i]); }
+        else if ((arg == "--tmin" || arg == "--theta-min") && next(i)) { theta_min = std::stod(argv[++i]); }
+        else if ((arg == "--tmax" || arg == "--theta-max") && next(i)) { theta_max = std::stod(argv[++i]); }
+        else if ((arg == "-n" || arg == "--N-theta") && next(i)) { N_theta = std::stoi(argv[++i]); }
+        else {
+            std::cerr << "Usage: " << argv[0] << " [options]\n"
+                      << "  -L, --L L              system size (default 50)\n"
+                      << "  -z, --zeta zeta        characteristic length (default 15)\n"
+                      << "  --tmin, --theta-min t  lower theta bound (default -1)\n"
+                      << "  --tmax, --theta-max t  upper theta bound (default 1)\n"
+                      << "  -n, --N-theta n        number of theta points (default 21)\n"
+                      << "  theta=0 is excluded automatically.\n";
+            return 1;
+        }
     }
     const double k_avg = 5.0;
     const double alpha = 2.0;
@@ -46,10 +59,10 @@ int main(int argc, char* argv[]) {
     std::cout << "  Vertices: " << boost::num_vertices(g)
               << ", Edges: " << boost::num_edges(g) << std::endl;
 
+    std::vector<double> raw = linspace(theta_min, theta_max, N_theta);
     std::vector<double> theta_list;
-    for (double t = -1.0; t <= 1.0 + 1e-9; t += 0.1) {
-        if (std::abs(t) < 1e-9) continue;
-        theta_list.push_back(t);
+    for (double t : raw) {
+        if (std::abs(t) > 1e-9) theta_list.push_back(t);
     }
     int l_theta = static_cast<int>(theta_list.size());
     std::cout << "  theta values: " << l_theta << " (";

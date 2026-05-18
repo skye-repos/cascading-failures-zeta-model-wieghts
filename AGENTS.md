@@ -13,6 +13,17 @@ cmake --build build
 
 Requires **Boost** (graph) and **OpenMP**.
 
+## CLI flags
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-L, --L` | 50 | System size (L×L vertices) |
+| `-z, --zeta` | 15 | Characteristic link length |
+| `--tmin, --theta-min` | -1 | Lower theta bound |
+| `--tmax, --theta-max` | 1 | Upper theta bound |
+| `-n, --N-theta` | 21 | Number of theta points (θ=0 excluded) |
+
+Example: `./build/cascade -L 30 -z 10 --tmin -0.5 --tmax 0.5 -n 11`
+
 macOS:
 ```sh
 brew install boost libomp cmake
