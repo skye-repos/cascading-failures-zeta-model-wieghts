@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "Minimum macOS version")
-    # libomp is keg-only on Apple Silicon — help find it
-    set(OpenMP_ROOT /opt/homebrew/opt/libomp)
 endif()
 find_package(OpenMP REQUIRED)
 

@@ -13,26 +13,29 @@ Simulates Motter–Lai cascading failures on ζ-model spatial networks
 
 #+begin_src sh
 brew install boost libomp cmake
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DOpenMP_ROOT="$(brew --prefix libomp)"
 #+end_src
 
 ** Linux (x86_64)
 
-Install build tools and download Boost with curl:
+OpenMP is provided by GCC — no extra install needed.
+
+Option A — install Boost from your package manager (simpler):
 
 #+begin_src sh
-# Build essentials + CMake
-sudo apt install build-essential cmake
-
-# Download & extract Boost headers (only headers needed for this project)
-curl -L https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.bz2 -o boost.tar.bz2
-tar -xjf boost.tar.bz2
-
-# Point CMake at the extracted directory and build
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT=$PWD/boost_1_87_0
+sudo apt install build-essential cmake libboost-dev-all
+cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 #+end_src
 
-OpenMP is provided by GCC (=build-essential=) — no extra install needed.
+Option B — download Boost headers with curl (works on any distro):
+
+#+begin_src sh
+sudo apt install build-essential cmake
+curl -L https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.bz2 | tar -xj
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT=$PWD/boost_1_87_0
+cmake --build build
+#+end_src
 
 ** Build
 

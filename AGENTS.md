@@ -16,10 +16,17 @@ Requires **Boost** (graph) and **OpenMP**.
 macOS:
 ```sh
 brew install boost libomp cmake
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DOpenMP_ROOT="$(brew --prefix libomp)"
 ```
 
 Linux (x86_64):
 ```sh
+# Option A — apt (Ubuntu/Debian)
+sudo apt install build-essential cmake libboost-dev-all
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+
+# Option B — curl (any distro)
 sudo apt install build-essential cmake
 curl -L https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.bz2 | tar -xj
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT=$PWD/boost_1_87_0
