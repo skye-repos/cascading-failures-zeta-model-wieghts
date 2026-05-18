@@ -26,6 +26,7 @@ int main(int argc, char* argv[]) {
     double theta_min = -1.0;
     double theta_max = 1.0;
     int N_theta = 21;
+    int n_pts = 50;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -35,6 +36,7 @@ int main(int argc, char* argv[]) {
         else if ((arg == "--tmin" || arg == "--theta-min") && next(i)) { theta_min = std::stod(argv[++i]); }
         else if ((arg == "--tmax" || arg == "--theta-max") && next(i)) { theta_max = std::stod(argv[++i]); }
         else if ((arg == "-n" || arg == "--N-theta") && next(i)) { N_theta = std::stoi(argv[++i]); }
+        else if ((arg == "-p" || arg == "--n-pts") && next(i)) { n_pts = std::stoi(argv[++i]); }
         else {
             std::cerr << "Usage: " << argv[0] << " [options]\n"
                       << "  -L, --L L              system size (default 50)\n"
@@ -42,13 +44,13 @@ int main(int argc, char* argv[]) {
                       << "  --tmin, --theta-min t  lower theta bound (default -1)\n"
                       << "  --tmax, --theta-max t  upper theta bound (default 1)\n"
                       << "  -n, --N-theta n        number of theta points (default 21)\n"
+                      << "  -p, --n-pts n          number of p values (default 50)\n"
                       << "  theta=0 is excluded automatically.\n";
             return 1;
         }
     }
     const double k_avg = 5.0;
     const double alpha = 2.0;
-    const int n_pts = 50;
 
     std::random_device rd;
     std::mt19937 rng(rd());

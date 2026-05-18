@@ -21,6 +21,7 @@ Requires **Boost** (graph) and **OpenMP**.
 | `--tmin, --theta-min` | -1 | Lower theta bound |
 | `--tmax, --theta-max` | 1 | Upper theta bound |
 | `-n, --N-theta` | 21 | Number of theta points (θ=0 excluded) |
+| `-p, --n-pts` | 50 | Number of p values |
 
 Example: `./build/cascade -L 30 -z 10 --tmin -0.5 --tmax 0.5 -n 11`
 
