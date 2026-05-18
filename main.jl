@@ -61,7 +61,7 @@ function simulate_cascade(
                 p_results[(n_pts-n+1), i, j] = pₑ[j]
             end
 
-            @info(@sprintf("%2d/%2d p's, θ = %.2f",
+            @info(@sprintf("%2d/%2d p's, θ = %4.2f",
                 n, n_pts, θ))
         end
     end
@@ -85,9 +85,7 @@ const k::Float64 = 5
 const α::Float64 = 2.0
 
 const g::Graph = ζ_taurus(L, ζ, k);
-const θ_list = append!(
-    collect(-0.25:0.05:-0.05),
-    collect(0.05:0.05:1.00))
+const θ_list = append!(collect(-1.0:0.05:-0.1), collect(0.1:0.5:1.0))
 
 const n_pts = 50
 
