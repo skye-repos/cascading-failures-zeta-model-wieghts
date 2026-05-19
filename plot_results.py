@@ -97,36 +97,22 @@ def plot_degree_heatmaps(data, p_list, plots_dir):
         plt.close(fig)
 
 
-def main():
-    if len(sys.argv) < 2:
-        base = "results/CSV"
-        available = sorted(glob.glob(os.path.join(base, "L = *", "*")))
-        if not available:
-            print("No results found in results/CSV/.")
-            print("Run ./build/cascade first, or specify a results directory:")
-            print(f"  python {sys.argv[0]} results/CSV/L = .../zeta = ..., k = ..., alpha = .../")
-            sys.exit(1)
-        csv_dir = available[-1]
-    else:
-        csv_dir = sys.argv[1]
-        if not os.path.isdir(csv_dir):
-            print(f"Directory not found: {csv_dir}")
-            sys.exit(1)
-
+def process_one_dir(csv_dir):
+    """Generate plots for a single results directory."""
     plots_dir = csv_dir.replace("/CSV/", "/plots/", 1)
     os.makedirs(plots_dir, exist_ok=True)
 
     data = parse_results(csv_dir)
     if not data:
-        print(f"No CSV files found in {csv_dir}")
-        sys.exit(1)
+        print(f"  No CSV files found in {csv_dir}")
+        return
 
     # Identify combined CSVs by filename
     S_key = [k for k in data if "Gt Component" in k]
     t_key = [k for k in data if "Cascade Time" in k]
     if not S_key:
-        print("No giant component CSV found")
-        sys.exit(1)
+        print(f"  No giant component CSV found in {csv_dir}")
+        return
 
     # Read header for p_list (skip "theta" column)
     _, _, header = data[S_key[0]]
@@ -160,7 +146,26 @@ def main():
     # -- Degree distribution heatmaps --
     plot_degree_heatmaps(data, p_list, plots_dir)
 
-    print(f"Plots written to {plots_dir}")
+    print(f"  Plots written to {plots_dir}")
+
+
+def main():
+    if len(sys.argv) < 2:
+        base = "results/CSV"
+        available = sorted(glob.glob(os.path.join(base, "L = *", "*")))
+        if not available:
+            print("No results found in results/CSV/.")
+            print("Run ./build/cascade first, or specify a results directory:")
+            print(f"  python {sys.argv[0]} results/CSV/L = .../zeta = ..., k = ..., alpha = .../")
+            sys.exit(1)
+        for csv_dir in available:
+            process_one_dir(csv_dir)
+    else:
+        csv_dir = sys.argv[1]
+        if not os.path.isdir(csv_dir):
+            print(f"Directory not found: {csv_dir}")
+            sys.exit(1)
+        process_one_dir(csv_dir)
 
 
 if __name__ == "__main__":
