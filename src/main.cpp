@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <sstream>
 
@@ -51,6 +52,8 @@ int main(int argc, char* argv[]) {
     }
     const double k_avg = 5.0;
     const double alpha = 2.0;
+
+    auto t0 = std::chrono::steady_clock::now();
 
     std::random_device rd;
     std::mt19937 rng(rd());
@@ -232,6 +235,9 @@ int main(int argc, char* argv[]) {
         write_csv(deg_out, k_max, n_pts + 1, (csv_dir / fname).string(), hdr);
     }
 
+    auto t1 = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed = t1 - t0;
     std::cout << "Done. Results in " << csv_dir << std::endl;
+    std::cout << "Total time: " << elapsed.count() << " s" << std::endl;
     return 0;
 }
