@@ -152,11 +152,12 @@ def process_one_dir(csv_dir):
 def main():
     if len(sys.argv) < 2:
         base = "results/CSV"
-        available = sorted(glob.glob(os.path.join(base, "L = *", "*")))
+        available = sorted(glob.glob(os.path.join(base, "*", "*")))
         if not available:
             print("No results found in results/CSV/.")
             print("Run ./build/cascade first, or specify a results directory:")
-            print(f"  python {sys.argv[0]} results/CSV/L = .../zeta = ..., k = ..., alpha = .../")
+            print("  e.g. results/CSV/L = .../zeta = ..., k = ..., alpha = .../")
+            print("  e.g. results/CSV/<graph_name>/directed/")
             sys.exit(1)
         for csv_dir in available:
             process_one_dir(csv_dir)

@@ -19,7 +19,6 @@ find_package(Boost REQUIRED)
 
 add_executable(cascade
     src/main.cpp
-    src/simulate.cpp
     src/graph_generators.cpp
     src/util.cpp
 )

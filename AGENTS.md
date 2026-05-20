@@ -22,8 +22,16 @@ Requires **Boost** (graph) and **OpenMP**.
 | `--tmax, --theta-max` | 1 | Upper theta bound |
 | `-n, --N-theta` | 21 | Number of theta points (θ=0 excluded) |
 | `-p, --n-pts` | 50 | Number of p values |
+| `--graph <path>` | — | Load real network from CSV edge list (from,to) |
+| `--directed` | — | Treat graph as directed (`bidirectionalS`) |
+| `--in-degree` | — | Use in-degree for θ weights (directed only) |
+| `--out-degree` | — | Use out-degree for θ weights (directed only) |
 
-Example: `./build/cascade -L 30 -z 10 --tmin -0.5 --tmax 0.5 -n 11`
+Examples:
+```sh
+./build/cascade -L 30 -z 10 --tmin -0.5 --tmax 0.5 -n 11
+./build/cascade --graph mygraph.csv --directed --out-degree
+```
 
 macOS:
 ```sh
@@ -48,11 +56,29 @@ cmake --build build
 ## Source layout
 | File | Role |
 |------|------|
-| `src/main.cpp` | Constants, parallel dispatch over θ, CSV + plot output |
-| `src/graph_generators.h/cpp` | Graph type (`adjacency_list<vecS,vecS,undirectedS>` with `edge_weight_t`) + ζ_taurus, BA, ER generators |
-| `src/simulate.h/cpp` | `seed_failure`, `set_theta_weights`, `cascade` (Motter–Lai with Brandes betweenness) |
-| `src/util.h/cpp` | `degrees`, `degree_distribution`, `giant_component_size`, `write_csv` |
+| `src/main.cpp` | Constants, CLI flags, parallel dispatch over θ, CSV + plot output |
+| `src/graph_generators.h/cpp` | `GraphBase<Directed>` template alias, ζ_taurus generator, `read_csv<Directed>` |
+| `src/simulate.h` | `DegreeMode` enum, `seed_failure`, `set_theta_weights`, `cascade` (all templated on `Graph`) |
+| `src/util.h/cpp` | `degrees`/`degrees_in`/`degrees_out`/`degree_distribution`/`giant_component_size` (templates) + `write_csv`, `linspace` |
 | `plot_results.py` | Standalone matplotlib post-processor — generates comparison plots + heatmaps from CSVs |
+
+## Graph types
+| Alias | Underlying type |
+|-------|----------------|
+| `GraphBase<Directed>` | `adjacency_list<vecS,vecS,Directed>` with `edge_weight_t` |
+| `UndirectedGraph` | `GraphBase<boost::undirectedS>` |
+| `DirectedGraph` | `GraphBase<boost::bidirectionalS>` |
+| `Graph` | `UndirectedGraph` (backward-compat alias) |
+
+All simulation functions (`seed_failure`, `set_theta_weights`, `cascade`) and
+utility functions (`degrees`, `giant_component_size`, etc.) are templated on
+`Graph`.  The `--graph` flag selects `read_csv` loading instead of the ζ-model
+generator; `--directed` selects `bidirectionalS` vs `undirectedS`.
+
+`DegreeMode::Total` uses `boost::degree()` (= in+out for bidirectionalS,
+undirected degree for undirectedS).  `--in-degree`/`--out-degree` select
+`boost::in_degree()`/`boost::out_degree()` respectively; these are honoured
+only for directed graphs (all three return the same for undirectedS).
 
 ## Key differences from the original Julia code
 - **Boost.Graph** replaces the custom `Graph`, Dijkstra, Brandes, and connected-components implementations
