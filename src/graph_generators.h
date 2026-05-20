@@ -13,5 +13,3 @@ using Graph = boost::adjacency_list<
 >;
 
 Graph zeta_taurus(int L, double zeta, double k_avg, std::mt19937& rng);
-Graph barabasi_albert(int m, int N, std::mt19937& rng);
-Graph erdos_renyi(int N, double p, std::mt19937& rng);
