@@ -3,7 +3,7 @@
 #include <cmath>
 #include <algorithm>
 
-Graph zeta_taurus(int L, double zeta, double k_avg, std::mt19937& rng) {
+Graph zeta_taurus(int L, double ζ, double k_avg, std::mt19937& rng) {
     int N = L * L;
     Graph g(N);
 
@@ -17,7 +17,7 @@ Graph zeta_taurus(int L, double zeta, double k_avg, std::mt19937& rng) {
         int rj = j / L, cj = j % L;
         double dx = static_cast<double>(toroidal_dist(0, rj));
         double dy = static_cast<double>(toroidal_dist(0, cj));
-        s += std::exp(-std::sqrt(dx * dx + dy * dy) / zeta);
+        s += std::exp(-std::sqrt(dx * dx + dy * dy) / ζ);
     }
     double coeff = k_avg / s;
 
@@ -28,7 +28,7 @@ Graph zeta_taurus(int L, double zeta, double k_avg, std::mt19937& rng) {
             int ri = i / L, ci = i % L;
             double dx = static_cast<double>(toroidal_dist(ri, rj));
             double dy = static_cast<double>(toroidal_dist(ci, cj));
-            double prob = coeff * std::exp(-std::sqrt(dx * dx + dy * dy) / zeta);
+            double prob = coeff * std::exp(-std::sqrt(dx * dx + dy * dy) / ζ);
             if (dist(rng) < prob) {
                 boost::add_edge(i, j, g);
             }
@@ -37,4 +37,3 @@ Graph zeta_taurus(int L, double zeta, double k_avg, std::mt19937& rng) {
 
     return g;
 }
-

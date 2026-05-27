@@ -12,4 +12,4 @@ using Graph = boost::adjacency_list<
     boost::property<boost::edge_weight_t, double>
 >;
 
-Graph zeta_taurus(int L, double zeta, double k_avg, std::mt19937& rng);
+Graph zeta_taurus(int L, double ζ, double k_avg, std::mt19937& rng);

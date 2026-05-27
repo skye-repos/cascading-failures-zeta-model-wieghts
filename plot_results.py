@@ -9,7 +9,7 @@ Usage:
     python plot_results.py <results_dir>
 
 The results_dir should be the parameter-specific subdirectory, e.g.:
-    results/CSV/L = 50/zeta = 15, k = 5, alpha = 2/
+    results/CSV/L = 50/ζ = 15, k = 5, α = 2/
 """
 import sys
 import os
@@ -22,30 +22,30 @@ import matplotlib.pyplot as plt
 
 def parse_results(results_dir):
     """Read all CSV files in results_dir. Returns dict of
-    {filename: (theta_col, data_matrix)} where data_matrix excludes
-    the theta column."""
+    {filename: (θ_col, data_matrix)} where data_matrix excludes
+    the θ column."""
     data = {}
     for fpath in sorted(glob.glob(os.path.join(results_dir, "*.csv"))):
         fname = os.path.basename(fpath)
         with open(fpath) as f:
             header = f.readline().strip().split(",")
         arr = np.loadtxt(fpath, delimiter=",", skiprows=1)
-        # First column is theta
-        theta_col = arr[:, 0] if arr.ndim > 1 else np.array([arr[0]])
+        # First column is θ
+        θ_col = arr[:, 0] if arr.ndim > 1 else np.array([arr[0]])
         data_mat = arr[:, 1:] if arr.ndim > 1 else arr[1:]
-        data[fname] = (theta_col, data_mat, header)
+        data[fname] = (θ_col, data_mat, header)
     return data
 
 
-def plot_comparison(mat, theta_list, p_list, ylabel, title, outpath):
-    """Line plot: each line is a theta value."""
+def plot_comparison(mat, θ_list, p_list, ylabel, title, outpath):
+    """Line plot: each line is a θ value."""
     fig, ax = plt.subplots(figsize=(8, 5))
     cmap = plt.cm.viridis
-    colors = [cmap(z) for z in np.linspace(0, 1, len(theta_list))]
+    colors = [cmap(z) for z in np.linspace(0, 1, len(θ_list))]
 
-    for i, (theta, color) in enumerate(zip(theta_list, colors)):
+    for i, (θ, color) in enumerate(zip(θ_list, colors)):
         ax.plot(p_list, mat[i, :], color=color, lw=0.75,
-                label=f"\u03b8={theta:.2f}")
+                label=f"\u03b8={θ:.2f}")
 
     ax.set_xlabel("p")
     ax.set_ylabel(ylabel)
@@ -56,11 +56,11 @@ def plot_comparison(mat, theta_list, p_list, ylabel, title, outpath):
     plt.close(fig)
 
 
-def plot_heatmap(mat, theta_list, p_list, title, outpath, xlabel="p", ylabel="\u03b8"):
-    """Heatmap of S over (p, theta)."""
+def plot_heatmap(mat, θ_list, p_list, title, outpath, xlabel="p", ylabel="\u03b8"):
+    """Heatmap of S over (p, θ)."""
     fig, ax = plt.subplots(figsize=(8, 5))
     im = ax.imshow(mat, aspect="auto", origin="lower",
-                   extent=[p_list[0], p_list[-1], theta_list[0], theta_list[-1]],
+                   extent=[p_list[0], p_list[-1], θ_list[0], θ_list[-1]],
                    cmap="viridis")
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -72,13 +72,13 @@ def plot_heatmap(mat, theta_list, p_list, title, outpath, xlabel="p", ylabel="\u
 
 
 def plot_degree_heatmaps(data, p_list, plots_dir):
-    """For each theta, plot degree distribution heatmap."""
+    """For each θ, plot degree distribution heatmap."""
     for key in data:
         if "degree-distribution" not in key:
             continue
-        theta_col, mat, header = data[key]
+        θ_col, mat, header = data[key]
         # mat is k_max x n_pts (rows=degree, cols=p)
-        theta = theta_col[0]
+        θ = θ_col[0]
         k_vals = np.arange(1, mat.shape[0] + 1)
         pk_mat = mat.T  # n_pts x k_max
 
@@ -88,11 +88,11 @@ def plot_degree_heatmaps(data, p_list, plots_dir):
                        cmap="viridis")
         ax.set_xlabel("degree k")
         ax.set_ylabel("p")
-        ax.set_title(f"\u03b8={theta:.2f}, Heatmap of final p\u2096")
+        ax.set_title(f"\u03b8={θ:.2f}, Heatmap of final p\u2096")
         fig.colorbar(im, ax=ax)
         fig.tight_layout()
 
-        safe_name = f"degree-heatmap_theta={theta:.2f}.png"
+        safe_name = f"degree-heatmap_θ={θ:.2f}.png"
         fig.savefig(os.path.join(plots_dir, safe_name), dpi=150)
         plt.close(fig)
 
@@ -114,32 +114,32 @@ def process_one_dir(csv_dir):
         print(f"  No giant component CSV found in {csv_dir}")
         return
 
-    # Read header for p_list (skip "theta" column)
+    # Read header for p_list (skip "θ" column)
     _, _, header = data[S_key[0]]
     p_list = np.array([float(h) for h in header[1:]])
 
-    # Theta and data from combined CSVs
-    theta_col_S, S_mat, _ = data[S_key[0]]
-    theta_list = theta_col_S
+    # θ and data from combined CSVs
+    θ_col_S, S_mat, _ = data[S_key[0]]
+    θ_list = θ_col_S
 
     t_mat = None
     if t_key:
         _, t_mat, _ = data[t_key[0]]
 
     # -- Comparison plots --
-    plot_comparison(S_mat, theta_list, p_list,
+    plot_comparison(S_mat, θ_list, p_list,
                     ylabel="S",
                     title="Giant component",
                     outpath=os.path.join(plots_dir, "comparison_giant_component.png"))
 
     if t_mat is not None:
-        plot_comparison(t_mat, theta_list, p_list,
+        plot_comparison(t_mat, θ_list, p_list,
                         ylabel="Cascade Time",
                         title="Cascade Time",
                         outpath=os.path.join(plots_dir, "comparison_cascade_time.png"))
 
     # -- Heatmaps --
-    plot_heatmap(S_mat, theta_list, p_list,
+    plot_heatmap(S_mat, θ_list, p_list,
                  title="GC heatmap",
                  outpath=os.path.join(plots_dir, "heatmap_giant_component.png"))
 
@@ -156,7 +156,7 @@ def main():
         if not available:
             print("No results found in results/CSV/.")
             print("Run ./build/cascade first, or specify a results directory:")
-            print(f"  python {sys.argv[0]} results/CSV/L = .../zeta = ..., k = ..., alpha = .../")
+            print(f"  python {sys.argv[0]} results/CSV/L = .../ζ = ..., k = ..., α = .../")
             sys.exit(1)
         for csv_dir in available:
             process_one_dir(csv_dir)
