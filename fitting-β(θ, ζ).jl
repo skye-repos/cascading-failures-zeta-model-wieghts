@@ -18,15 +18,17 @@ x_pos_data = hcat(repeat(ζ_list, length(θ_pos)),
 x_neg_data = hcat(repeat(ζ_list, length(θ_neg)),
     repeat(θ_neg, inner=length(ζ_list)))
 
+L = 100
+
 function model(x, p)
-    ζ = x[:, 1]
+    ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
     return p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2
 end
 
 function exp_model(x, p)
-    ζ = x[:, 1]
+    ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
     return exp.(p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2)
@@ -78,19 +80,19 @@ end
 fit_and_write(model,
     x_pos_data, β_pos_vec,
     "θ > 0.txt",
-    "β(θ, ζ) = a + b/ζ + c*(θ + d)^2")
+    "β(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
 
 fit_and_write(model,
     x_neg_data, β_neg_vec,
     "θ < 0.txt",
-    "β(θ, ζ) = a + b/ζ + c*(θ + d)^2")
+    "β(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
 
 fit_and_write(exp_model,
     x_pos_data, β_pos_vec,
     "θ > 0, exp.txt",
-    "β(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")
+    "β(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
 
 fit_and_write(exp_model,
     x_neg_data, β_neg_vec,
     "θ < 0, exp.txt",
-    "β(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")
+    "β(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
