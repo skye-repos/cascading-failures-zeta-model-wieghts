@@ -25,12 +25,12 @@ function model(x, p)
     return p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2
 end
 
-# function model(x, p)
-#     ζ = x[:, 1]
-#     θ = x[:, 2]
+function exp_model(x, p)
+    ζ = x[:, 1]
+    θ = x[:, 2]
 
-#     return exp.(p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2)
-# end
+    return exp.(p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2)
+end
 
 function r2(y, fit)
     res = residuals(fit)
@@ -84,3 +84,13 @@ fit_and_write(model,
     x_neg_data, β_neg_vec,
     "θ < 0.txt",
     "β(θ, ζ) = a + b/ζ + c*(θ + d)^2")
+
+fit_and_write(exp_model,
+    x_pos_data, β_pos_vec,
+    "θ > 0, exp.txt",
+    "β(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")
+
+fit_and_write(exp_model,
+    x_neg_data, β_neg_vec,
+    "θ < 0, exp.txt",
+    "β(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")

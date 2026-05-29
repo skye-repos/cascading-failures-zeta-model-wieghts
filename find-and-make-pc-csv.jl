@@ -6,6 +6,22 @@ using Plots
 
 ζ_list = collect(5.0:2.5:50)
 
+function gaussian_kernel(x, w::Int = 3)
+    n = length(x)
+    out = zeros(n - w)
+    σ = 5
+    γ = - 1 / (2σ^2)
+    for i ∈ 1:n-w
+        g = 0
+        for j ∈ 1:w-1
+            g += exp(γ * (x[i] - x[j])^2)
+        end
+        out[i] = g / w
+    end
+
+    return out
+end
+
 function find_critical(row)
     θ = row[1]
     vals = row[2:end]
@@ -15,6 +31,7 @@ function find_critical(row)
     h = sum(p[2:end] .- p[1:end - 1]) / (n - 1)
 
     vals = collect(vals)
+    vals = gaussian_kernel(vals, 3)
 
     critical_point = 1
     diffs = zeros(Float64, n)
@@ -51,41 +68,24 @@ function pc_row(ζ)
     names = append!(["ζ"], header)
     
     pc_list = []
+    pci_list = []
     for row ∈ eachrow(df_z)
-        θ, _, pc = find_critical(row)
+        θ, pci, pc = find_critical(row)
         push!(pc_list, pc)
+        push!(pci_list, pci)
     end
 
     vals = append!([ζ], pc_list)
+    valsi = append!([ζ], pci_list)
     df_loc = DataFrame([names[i] => vals[i] for i ∈ eachindex(vals)])
+    dfi_loc = DataFrame([names[i] => valsi[i] for i ∈ eachindex(valsi)])
 
-    return df_loc
+    return df_loc, dfi_loc
 end
 
-function pc_index_row(ζ)
-    file = "data/ζ = $(ζ).csv"
-    df_z = CSV.read(file, DataFrame)
-
-    header = string.(df_z[:, 1])
-    names = append!(["ζ"], header)
-    
-    pci_list = []
-    for row ∈ eachrow(df_z)
-        θ, pci, _ = find_critical(row)
-        push!(pci_list, Integer(pci))
-    end
-
-    vals = append!([ζ], pci_list)
-    df_loc = DataFrame([names[i] => vals[i] for i ∈ eachindex(vals)])
-
-    return df_loc
-end
-
-df = pc_row(ζ_list[1])
-dfi = pc_index_row(ζ_list[1])
+df, dfi = pc_row(ζ_list[1])
 for ζ ∈ ζ_list[2:end]
-    df_loc = pc_row(ζ)
-    dfi_loc = pc_index_row(ζ)
+    df_loc, dfi_loc = pc_row(ζ)
     append!(df, df_loc)
     append!(dfi, dfi_loc)
 end
