@@ -35,6 +35,13 @@ function neg(x, p)
     return p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2
 end
 
+function inv(x, p)
+    ζ = x[:, 1] ./ L
+    θ = x[:, 2]
+
+    return p[1] .+ p[2] .* θ .+ p[3] .* (ζ .+ p[4]) .^ 2
+end
+
 function r2(y, fit)
     res = residuals(fit)
     ss1 = sum(res .* res)
@@ -96,3 +103,13 @@ fit_and_write4(neg,
     x_neg_data, pc_neg_vec,
     "θ < 0.txt",
     "p_c(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
+
+fit_and_write4(inv,
+    x_pos_data, pc_pos_vec,
+    "θ > 0, θ → ζ.txt",
+    "p_c(θ, ζ) = a + b*θ + c*(ζ/L + d)^2")
+
+fit_and_write4(inv,
+    x_neg_data, pc_neg_vec,
+    "θ < 0, θ → ζ.txt",
+    "p_c(θ, ζ) = a + b*θ + c*(ζ/L + d)^2")

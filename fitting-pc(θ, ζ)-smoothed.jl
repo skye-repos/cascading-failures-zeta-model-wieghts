@@ -56,6 +56,14 @@ function c4(x, p)
     return p[1] .+ p[2] .* θ
 end
 
+function c5(x, p)
+    ζ = x[:, 1] ./ L
+    θ = x[:, 2]
+
+    return p[1] .+ p[2] .* θ .+ p[3] .* (ζ .+ p[4]) .^ 2
+end
+
+
 function r2(y, fit)
     res = residuals(fit)
     ss1 = sum(res .* res)
@@ -208,3 +216,8 @@ fit_and_write2(c4,
     x_neg_data, pc_neg_vec,
     "θ < 0, linear θ.txt",
     "p_c(θ, ζ) = a + b*θ")
+
+fit_and_write4(c5,
+    x_neg_data, pc_neg_vec,
+    "θ < 0, quadratic ζ, linear θ.txt",
+    "p_c(θ, ζ) = a + b*θ + c*(ζ/L + d)^2")
