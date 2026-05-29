@@ -4,7 +4,6 @@ using DataFrames, CSV
 using LsqFit, LinearAlgebra
 
 df = CSV.read("results/CSV/L = 100/β(θ,ζ).csv", DataFrame)
-df = df[3:end, :]
 ζ_list = df[:, 1]
 df_pos = df[:, 22:end]
 df_neg = df[:, 2:21]
@@ -19,19 +18,19 @@ x_pos_data = hcat(repeat(ζ_list, length(θ_pos)),
 x_neg_data = hcat(repeat(ζ_list, length(θ_neg)),
     repeat(θ_neg, inner=length(ζ_list)))
 
-# function model(x, p)
-#     ζ = x[:, 1]
-#     θ = x[:, 2]
-
-#     return p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2
-# end
-
 function model(x, p)
     ζ = x[:, 1]
     θ = x[:, 2]
 
-    return exp.(p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2)
+    return p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2
 end
+
+# function model(x, p)
+#     ζ = x[:, 1]
+#     θ = x[:, 2]
+
+#     return exp.(p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2)
+# end
 
 function r2(y, fit)
     res = residuals(fit)
@@ -78,10 +77,10 @@ end
 
 fit_and_write(model,
     x_pos_data, β_pos_vec,
-    "θ > 0, exp.txt",
-    "β(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")
+    "θ > 0.txt",
+    "β(θ, ζ) = a + b/ζ + c*(θ + d)^2")
 
 fit_and_write(model,
     x_neg_data, β_neg_vec,
-    "θ < 0, exp.txt",
-    "β(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")
+    "θ < 0.txt",
+    "β(θ, ζ) = a + b/ζ + c*(θ + d)^2")
