@@ -86,3 +86,8 @@ fit_and_write(neg,
     x_neg_data, pc_neg_vec,
     "θ < 0.txt",
     "p_c(θ, ζ) = a + b/ζ + c*(θ + d)^2")
+
+fit_and_write(pos,
+    x_neg_data, pc_neg_vec,
+    "θ < 0, exp.txt",
+    "p_c(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")

@@ -6,7 +6,7 @@ using Plots, LaTeXStrings
 ζ_list = collect(5.0:2.5:50.0)
 
 function β_row(ζ)
-    file = "data/ζ = $(ζ).csv"
+    file = "results/fits/L = 100/β, per-ζ/ζ = $(ζ).csv"
     df = CSV.read(file, DataFrame)
 
     header = string.(df[:, 1])
