@@ -22,14 +22,14 @@ x_neg_data = hcat(repeat(ζ_list, length(θ_neg)),
 L = 100
 
 function pos(x, p)
-    ζ = x[:, 1]
+    ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
     return exp.(p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2)
 end
 
 function neg(x, p)
-    ζ = x[:, 1]
+    ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
     return p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2
@@ -50,7 +50,7 @@ if !ispath(dir)
     mkpath(dir)
 end
 
-function fit_and_write(model, x, y, file, eqn)
+function fit_and_write4(model, x, y, file, eqn)
     p0 = [1.0, 1.0, 1.0, 1.0]
     fit = curve_fit(model, x, y, p0)
     params = coef(fit)
@@ -77,22 +77,22 @@ $(repr("text/plain", ci))"
     return nothing
 end
 
-fit_and_write(pos,
+fit_and_write4(pos,
     x_pos_data, pc_pos_vec,
     "θ > 0, exp.txt",
-    "p_c(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")
+    "p_c(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
 
-fit_and_write(neg,
+fit_and_write4(neg,
     x_pos_data, pc_pos_vec,
     "θ > 0.txt",
-    "p_c(θ, ζ) = a + b/ζ + c*(θ + d)^2")
+    "p_c(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
 
-fit_and_write(pos,
+fit_and_write4(pos,
     x_neg_data, pc_neg_vec,
     "θ < 0, exp.txt",
-    "p_c(θ, ζ) = exp(a + b/ζ + c*(θ + d)^2)")
+    "p_c(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
 
-fit_and_write(neg,
+fit_and_write4(neg,
     x_neg_data, pc_neg_vec,
     "θ < 0.txt",
-    "p_c(θ, ζ) = a + b/ζ + c*(θ + d)^2")
+    "p_c(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
