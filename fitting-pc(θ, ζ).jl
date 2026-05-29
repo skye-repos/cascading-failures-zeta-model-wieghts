@@ -39,28 +39,28 @@ function inv(x, p)
     ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
-    return p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* (ζ .+ p[5]) .^ 2
+    return p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* ζ .^  2
 end
 
 function vni(x, p)
     ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
-    return p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* (θ .+ p[5]) .^ 2
+    return p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* θ .^ 2
 end
 
 function exp_inv(x, p)
     ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
-    return exp.(p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* (ζ .+ p[5]) .^ 2)
+    return exp.(p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* ζ .^ 2)
 end
 
 function exp_vni(x, p)
     ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
-    return exp.(p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* (θ .+ p[5]) .^ 2)
+    return exp.(p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* θ .^ 2)
 end
 
 
@@ -154,42 +154,42 @@ fit_and_write4(neg,
     "θ < 0.txt",
     "p_c(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
 
-fit_and_write5(inv,
+fit_and_write4(inv,
     x_pos_data, pc_pos_vec,
-    "θ > 0, inv.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*(ζ/L + e)^2")
+    "θ > 0, inv 2.txt",
+    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*(ζ/L)^2")
 
-fit_and_write5(inv,
+fit_and_write4(inv,
     x_neg_data, pc_neg_vec,
-    "θ < 0, inv.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*(ζ/L + e)^2")
+    "θ < 0, inv 2.txt",
+    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*(ζ/L)^2")
 
-fit_and_write5(vni,
+fit_and_write4(vni,
     x_pos_data, pc_pos_vec,
-    "θ > 0, vni.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*(θ + e)^2")
+    "θ > 0, vni 2.txt",
+    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*θ^2")
 
-fit_and_write5(vni,
+fit_and_write4(vni,
     x_neg_data, pc_neg_vec,
-    "θ < 0, vni.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*(θ + e)^2")
+    "θ < 0, vni 2.txt",
+    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*θ^2")
 
-fit_and_write5(exp_inv,
+fit_and_write4(exp_inv,
     x_pos_data, pc_pos_vec,
-    "θ > 0, exp_inv.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*(ζ/L + e)^2)")
+    "θ > 0, exp_inv 2.txt",
+    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*(ζ/L)^2)")
 
-fit_and_write5(exp_inv,
+fit_and_write4(exp_inv,
     x_neg_data, pc_neg_vec,
-    "θ < 0, exp_inv.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*(ζ/L + e)^2)")
+    "θ < 0, exp_inv 2.txt",
+    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*(ζ/L)^2)")
 
-fit_and_write5(exp_vni,
+fit_and_write4(exp_vni,
     x_pos_data, pc_pos_vec,
-    "θ > 0, exp_vni.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*(θ + e)^2)")
+    "θ > 0, exp_vni 2.txt",
+    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*θ^2)")
 
-fit_and_write5(exp_vni,
+fit_and_write4(exp_vni,
     x_neg_data, pc_neg_vec,
-    "θ < 0, exp_vni.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*(θ + e)^2)")
+    "θ < 0, exp_vni 2.txt",
+    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*θ^2)")
