@@ -28,41 +28,19 @@ function pos(x, p)
     return exp.(p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2)
 end
 
+# function neg(x, p)
+#     ζ = x[:, 1] ./ L
+#     θ = x[:, 2]
+
+#     return exp.(p[1] .+ p[2] .* θ .+ p[3] .* (ζ .+ p[4]) .^ 2)
+# end
+
 function neg(x, p)
     ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
-    return p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2
+    return p[1] .+ p[2] .* θ .+ p[3] .* (ζ .+ p[4]) .^ 2
 end
-
-function inv(x, p)
-    ζ = x[:, 1] ./ L
-    θ = x[:, 2]
-
-    return p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* ζ .^  2
-end
-
-function vni(x, p)
-    ζ = x[:, 1] ./ L
-    θ = x[:, 2]
-
-    return p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* θ .^ 2
-end
-
-function exp_inv(x, p)
-    ζ = x[:, 1] ./ L
-    θ = x[:, 2]
-
-    return exp.(p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* ζ .^ 2)
-end
-
-function exp_vni(x, p)
-    ζ = x[:, 1] ./ L
-    θ = x[:, 2]
-
-    return exp.(p[1] .+ p[2] .* θ .+ p[3] ./ ζ .+ p[4] .* θ .^ 2)
-end
-
 
 function r2(y, fit)
     res = residuals(fit)
@@ -106,90 +84,12 @@ $(repr("text/plain", ci))"
     return nothing
 end
 
-function fit_and_write5(model, x, y, file, eqn)
-    p0 = [1.0, 1.0, 1.0, 1.0, 1.0]
-    fit = curve_fit(model, x, y, p0)
-    params = coef(fit)
-    cov = vcov(fit)
-    ci = confidence_interval(fit)
-    r_sq = r2(y, fit)
-
-    str = "$(eqn)\n" *
-          "a = $(params[1])
-b = $(params[2])
-c = $(params[3])
-d = $(params[4])
-e = $(params[5])
-
-R^2 = $(r_sq)
-det(σ^2) = $(det(cov))
-
-Covariance Matrix:
-$(repr("text/plain", cov))
-
-Confidence_Interval:
-$(repr("text/plain", ci))"
-
-    write(dir * file, str)
-    return nothing
-end
-
 fit_and_write4(pos,
     x_pos_data, pc_pos_vec,
     "θ > 0, exp.txt",
     "p_c(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
 
-fit_and_write4(pos,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, exp.txt",
-    "p_c(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
-
-fit_and_write4(neg,
-    x_pos_data, pc_pos_vec,
-    "θ > 0.txt",
-    "p_c(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
-
 fit_and_write4(neg,
     x_neg_data, pc_neg_vec,
-    "θ < 0.txt",
-    "p_c(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
-
-fit_and_write4(inv,
-    x_pos_data, pc_pos_vec,
-    "θ > 0, inv 2.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*(ζ/L)^2")
-
-fit_and_write4(inv,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, inv 2.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*(ζ/L)^2")
-
-fit_and_write4(vni,
-    x_pos_data, pc_pos_vec,
-    "θ > 0, vni 2.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*θ^2")
-
-fit_and_write4(vni,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, vni 2.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ + d*θ^2")
-
-fit_and_write4(exp_inv,
-    x_pos_data, pc_pos_vec,
-    "θ > 0, exp_inv 2.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*(ζ/L)^2)")
-
-fit_and_write4(exp_inv,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, exp_inv 2.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*(ζ/L)^2)")
-
-fit_and_write4(exp_vni,
-    x_pos_data, pc_pos_vec,
-    "θ > 0, exp_vni 2.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*θ^2)")
-
-fit_and_write4(exp_vni,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, exp_vni 2.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*L/ζ + d*θ^2)")
+    "θ < 0 - BEST.txt",
+    "p_c(θ, ζ) = a + b*θ + c*(ζ/L + d)^2")

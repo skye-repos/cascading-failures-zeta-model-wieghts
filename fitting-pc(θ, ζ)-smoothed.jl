@@ -32,37 +32,8 @@ function neg(x, p)
     ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
-    return p[1] .+ p[2] ./ ζ .+ p[3] .* (θ .+ p[4]) .^ 2
+    return exp.(p[1] .+ p[2] .* θ .+ p[3] .* (ζ .+ p[4]) .^ 2)
 end
-
-function c2(x, p)
-    ζ = x[:, 1] ./ L
-    θ = x[:, 2]
-
-    return p[1] .+ p[2] ./ ζ  .+ p[3] .* θ
-end
-
-function c3(x, p)
-    ζ = x[:, 1] ./ L
-    θ = x[:, 2]
-
-    return p[1] .+ p[2] .* (abs.(θ) ./ ζ) .^ p[3]
-end
-
-function c4(x, p)
-    ζ = x[:, 1] ./ L
-    θ = x[:, 2]
-
-    return p[1] .+ p[2] .* θ
-end
-
-function c5(x, p)
-    ζ = x[:, 1] ./ L
-    θ = x[:, 2]
-
-    return p[1] .+ p[2] .* θ .+ p[3] .* (ζ .+ p[4]) .^ 2
-end
-
 
 function r2(y, fit)
     res = residuals(fit)
@@ -77,82 +48,6 @@ end
 dir = "results/fits/L = 100/p_c(θ, ζ)_smoothed_neg/"
 if !ispath(dir)
     mkpath(dir)
-end
-
-function fit_and_write1(model, x, y, file, eqn)
-    p0 = [1.0]
-    fit = curve_fit(model, x, y, p0)
-    params = coef(fit)
-    cov = vcov(fit)
-    ci = confidence_interval(fit)
-    r_sq = r2(y, fit)
-
-    str = "$(eqn)\n" *
-          "a = $(params[1])
-
-R^2 = $(r_sq)
-det(σ^2) = $(det(cov))
-
-Covariance Matrix:
-$(repr("text/plain", cov))
-
-Confidence_Interval:
-$(repr("text/plain", ci))"
-
-    write(dir * file, str)
-    return nothing
-end
-
-function fit_and_write2(model, x, y, file, eqn)
-    p0 = [1.0, 1.0]
-    fit = curve_fit(model, x, y, p0)
-    params = coef(fit)
-    cov = vcov(fit)
-    ci = confidence_interval(fit)
-    r_sq = r2(y, fit)
-
-    str = "$(eqn)\n" *
-          "a = $(params[1])
-b = $(params[2])
-
-R^2 = $(r_sq)
-det(σ^2) = $(det(cov))
-
-Covariance Matrix:
-$(repr("text/plain", cov))
-
-Confidence_Interval:
-$(repr("text/plain", ci))"
-
-    write(dir * file, str)
-    return nothing
-end
-
-
-function fit_and_write3(model, x, y, file, eqn)
-    p0 = [1.0, 1.0, 1.0]
-    fit = curve_fit(model, x, y, p0)
-    params = coef(fit)
-    cov = vcov(fit)
-    ci = confidence_interval(fit)
-    r_sq = r2(y, fit)
-
-    str = "$(eqn)\n" *
-          "a = $(params[1])
-b = $(params[2])
-c = $(params[3])
-
-R^2 = $(r_sq)
-det(σ^2) = $(det(cov))
-
-Covariance Matrix:
-$(repr("text/plain", cov))
-
-Confidence_Interval:
-$(repr("text/plain", ci))"
-
-    write(dir * file, str)
-    return nothing
 end
 
 function fit_and_write4(model, x, y, file, eqn)
@@ -188,36 +83,6 @@ fit_and_write4(pos,
     "p_c(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
 
 fit_and_write4(neg,
-    x_pos_data, pc_pos_vec,
-    "θ > 0.txt",
-    "p_c(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
-
-fit_and_write4(pos,
     x_neg_data, pc_neg_vec,
-    "θ < 0, exp.txt",
-    "p_c(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
-
-fit_and_write4(neg,
-    x_neg_data, pc_neg_vec,
-    "θ < 0.txt",
-    "p_c(θ, ζ) = a + b*L/ζ + c*(θ + d)^2")
-
-fit_and_write3(c2,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, linear θ,ζ.txt",
-    "p_c(θ, ζ) = a + b*θ + c*L/ζ")
-
-fit_and_write3(c3,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, ratio (θ, ζ).txt",
-    "p_c(θ, ζ) = a + b*(θ*L/ζ)^c")
-
-fit_and_write2(c4,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, linear θ.txt",
-    "p_c(θ, ζ) = a + b*θ")
-
-fit_and_write4(c5,
-    x_neg_data, pc_neg_vec,
-    "θ < 0, quadratic ζ, linear θ.txt",
-    "p_c(θ, ζ) = a + b*θ + c*(ζ/L + d)^2")
+    "θ < 0, exp, new.txt",
+    "p_c(θ, ζ) = exp(a + b*θ + c*(ζ/L + d)^2)")
