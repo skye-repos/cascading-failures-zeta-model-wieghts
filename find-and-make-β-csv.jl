@@ -44,14 +44,24 @@ function r2(y, fit)
     return 1 - (ss1/ss2)
 end
 
+function bic(y, fit, k)
+    n = length(y)
+    rss = sum(abs2, residuals(fit))
+    return n * log(rss / n) + k * log(n)
+end
+
 dir = "results/fits/L = 100/β, per-ζ/"
 
 if !ispath(dir)
     mkpath(dir)
 end
 
-df_names = ["θ", "p_c + 0.01", "k (proportionality)", "β (exponent)", "R2"]
+df_names = ["θ", "p_c + 0.01", "k (proportionality)", "β (exponent)", "R2", "BIC"]
 p0 = [1.0, 0.5]
+
+bic_rows = []
+n = length(ζ_list) * length(θ_list)
+sizehint!(bic_rows, n)
 
 for ζ ∈ ζ_list
     out_file = dir * "ζ = $(ζ).csv"
@@ -62,12 +72,27 @@ for ζ ∈ ζ_list
         x_diff = x .- x[1]
         fit = curve_fit(critical, x_diff, y_diff, p0)
         r_sq = r2(y, fit)
+        b_i = bic(y, fit, 2)
         params = coef(fit)
-        vals = [θ, x[1], params[2], params[1], r_sq]
+        vals = [θ, x[1], params[2], params[1], r_sq, b_i]
         local df_loc = DataFrame([df_names[i] => vals[i] for i ∈ eachindex(vals)])
         append!(df, df_loc)
+
+        push!(bic_rows, (ζ, θ, length(y), b_i, r_sq))
     end
     CSV.write(out_file, df)
+end
+
+bic_file = "BIC_scores.csv"
+bic_header = !isfile(bic_file)
+open(bic_file, "a") do f
+    if bic_header
+        write(f, "source,model,region,n,k,BIC,R2\n")
+    end
+    for (ζ, θ, ny, bi, rs) in bic_rows
+        region = θ > 0 ? "θ > 0" : "θ < 0"
+        write(f, "power_law_β,y = k*x^β,$region,$ny,2,$bi,$rs\n")
+    end
 end
 
 function β_row(ζ)

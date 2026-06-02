@@ -32,7 +32,7 @@ function neg(x, p)
     ζ = x[:, 1] ./ L
     θ = x[:, 2]
 
-    return exp.(p[1] .+ p[2] .* θ .+ p[3] .* (ζ .+ p[4]) .^ 2)
+    return p[1] .+ p[2] .* θ .+ p[3] .* (ζ .+ p[4]) .^ 2
 end
 
 function r2(y, fit)
@@ -43,6 +43,12 @@ function r2(y, fit)
     ss2 = sum(a .* a)
 
     return 1 - (ss1 / ss2)
+end
+
+function bic(y, fit, k)
+    n = length(y)
+    rss = sum(abs2, residuals(fit))
+    return n * log(rss / n) + k * log(n)
 end
 
 dir = "results/fits/L = 100/p_c(θ, ζ)_smoothed_neg/"
@@ -65,6 +71,7 @@ c = $(params[3])
 d = $(params[4])
 
 R^2 = $(r_sq)
+BIC = $(bic(y, fit, 4))
 det(σ^2) = $(det(cov))
 
 Covariance Matrix:
@@ -74,15 +81,15 @@ Confidence_Interval:
 $(repr("text/plain", ci))"
 
     write(dir * file, str)
-    return nothing
+    return params, r_sq, bic(y, fit, 4), length(y)
 end
 
-fit_and_write4(pos,
+p1, rsq1, b1, n1 = fit_and_write4(pos,
     x_pos_data, pc_pos_vec,
-    "θ > 0, exp.txt",
+    "θ > 0 - BEST.txt",
     "p_c(θ, ζ) = exp(a + b*L/ζ + c*(θ + d)^2)")
 
-fit_and_write4(neg,
+p2, rsq2, b2, n2 = fit_and_write4(neg,
     x_neg_data, pc_neg_vec,
-    "θ < 0, exp, new.txt",
-    "p_c(θ, ζ) = exp(a + b*θ + c*(ζ/L + d)^2)")
+    "θ < 0 - BEST.txt",
+    "p_c(θ, ζ) = a + b*θ + c*(ζ/L + d)^2")
