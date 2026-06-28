@@ -4,7 +4,7 @@ using DataFrames
 using CSV, Tables
 
 files = readdir("simplified/", join=true)
-ζ_list = [2.0, 3.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 50.0]
+ζ_list = collect(5.0:2.5:50)
 
 θ_list = append!(
     collect(-1.0:0.05:-0.05),
@@ -13,6 +13,10 @@ files = readdir("simplified/", join=true)
 
 header = names(CSV.read(files[1], DataFrame))[2:end]
 names = append!(["ζ"], header)
+
+if !ispath("fixed-thetas/")
+    mkpath("fixed-thetas/")
+end
 
 function fixed_theta_csv(i)
     df_out = DataFrame([name => [] for name ∈ names])
