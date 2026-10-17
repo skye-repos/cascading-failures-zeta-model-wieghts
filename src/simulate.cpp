@@ -6,9 +6,10 @@
 #include <cmath>
 #include <random>
 
-SeedFailure seed_failure(const Graph& g, double p_min, int n_pts, std::mt19937& rng) {
+SeedFailure seed_failure(const Graph& g, double p_min, std::mt19937_64& rng) {
     int n_e = static_cast<int>(boost::num_edges(g));
-    int max_rem = static_cast<int>(std::ceil((1.0 - p_min) * n_e));
+    int max_rem = static_cast<int>(std::llround((1.0 - p_min) * n_e));
+    max_rem = std::clamp(max_rem, 0, n_e);
 
     auto [ei, ei_end] = boost::edges(g);
     std::vector<std::pair<int, int>> all_edges;
@@ -21,12 +22,8 @@ SeedFailure seed_failure(const Graph& g, double p_min, int n_pts, std::mt19937& 
 
     std::shuffle(all_edges.begin(), all_edges.end(), rng);
 
-    int n_take = std::min(max_rem, static_cast<int>(all_edges.size()));
-    std::vector<std::pair<int, int>> rem_list(all_edges.begin(), all_edges.begin() + n_take);
-
-    int chunk = (n_take > 0) ? ((n_take + n_pts - 1) / n_pts) : 0;
-
-    return {rem_list, chunk};
+    all_edges.resize(max_rem);
+    return {std::move(all_edges)};
 }
 
 void set_θ_weights(Graph& g, double θ) {

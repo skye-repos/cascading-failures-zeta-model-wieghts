@@ -6,10 +6,9 @@
 
 struct SeedFailure {
     std::vector<std::pair<int, int>> rem_list;
-    int chunk;
 };
 
-SeedFailure seed_failure(const Graph& g, double p_min, int n_pts, std::mt19937& rng);
+SeedFailure seed_failure(const Graph& g, double p_min, std::mt19937_64& rng);
 
 void set_θ_weights(Graph& g, double θ);
 

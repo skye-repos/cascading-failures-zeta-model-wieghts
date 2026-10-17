@@ -2,8 +2,23 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
 
-Graph zeta_taurus(int L, double ζ, double k_avg, std::mt19937& rng) {
+Topology parse_topology(const std::string& name) {
+    if (name == "waxman" || name == "Waxman" || name == "WAXMAN") {
+        return Topology::Waxman;
+    }
+    if (name == "er" || name == "ER" || name == "Er") {
+        return Topology::ER;
+    }
+    throw std::invalid_argument("unknown topology: " + name);
+}
+
+std::string topology_name(Topology topology) {
+    return topology == Topology::ER ? "ER" : "waxman";
+}
+
+Graph zeta_taurus(int L, double ζ, double k_avg, std::mt19937_64& rng) {
     int N = L * L;
     Graph g(N);
 
@@ -36,4 +51,33 @@ Graph zeta_taurus(int L, double ζ, double k_avg, std::mt19937& rng) {
     }
 
     return g;
+}
+
+Graph er_graph(int N, double k_avg, std::mt19937_64& rng) {
+    Graph g(N);
+    if (N < 2) {
+        return g;
+    }
+
+    double q = k_avg / static_cast<double>(N - 1);
+    q = std::clamp(q, 0.0, 1.0);
+
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    for (int j = 1; j < N; ++j) {
+        for (int i = 0; i < j; ++i) {
+            if (dist(rng) < q) {
+                boost::add_edge(i, j, g);
+            }
+        }
+    }
+
+    return g;
+}
+
+Graph generate_graph(Topology topology, int L, double ζ, double k_avg,
+                     std::mt19937_64& rng) {
+    if (topology == Topology::ER) {
+        return er_graph(L * L, k_avg, rng);
+    }
+    return zeta_taurus(L, ζ, k_avg, rng);
 }
