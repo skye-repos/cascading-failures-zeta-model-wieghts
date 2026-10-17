@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -z "${OMP_NUM_THREADS:-}" ]]; then
+    OMP_NUM_THREADS=""
+    if command -v lscpu >/dev/null 2>&1; then
+        OMP_NUM_THREADS=$(lscpu -p=core,socket 2>/dev/null |
+                          grep -v '^#' | sort -u | wc -l | tr -d ' ')
+        [[ "$OMP_NUM_THREADS" == "0" ]] && OMP_NUM_THREADS=""
+    fi
+    if [[ -z "$OMP_NUM_THREADS" ]] && command -v sysctl >/dev/null 2>&1; then
+        OMP_NUM_THREADS=$(sysctl -n hw.physicalcpu 2>/dev/null ||
+                          sysctl -n hw.ncpu 2>/dev/null || echo "")
+    fi
+    if [[ -z "$OMP_NUM_THREADS" ]] && command -v nproc >/dev/null 2>&1; then
+        OMP_NUM_THREADS=$(nproc 2>/dev/null || echo "")
+    fi
+    [[ -z "$OMP_NUM_THREADS" ]] && OMP_NUM_THREADS=1
+fi
+export OMP_NUM_THREADS
+export OMP_DYNAMIC="${OMP_DYNAMIC:-false}"
+export OMP_PROC_BIND="${OMP_PROC_BIND:-spread}"
+export OMP_WAIT_POLICY="${OMP_WAIT_POLICY:-active}"
+
 BIN="${BIN:-./build/cascade}"
 SEED="${SEED:-12345}"
 REALIZATIONS="${REALIZATIONS:-5}"
@@ -23,6 +44,12 @@ Options:
   --n-theta N         number of theta points for Tier 1/3/ER (default 21)
   --dry-run           print commands without running them
   --background        launch each run with nohup in the background
+
+Environment:
+  OMP_NUM_THREADS     defaults to the physical-core count
+  OMP_PROC_BIND       defaults to "spread"
+  OMP_DYNAMIC         defaults to "false"
+  OMP_WAIT_POLICY     defaults to "active"
 
 Tier 3 repeats the L=100 scan as a regression check and is not part of "all".
 EOF

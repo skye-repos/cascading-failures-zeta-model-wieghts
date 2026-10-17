@@ -27,12 +27,24 @@ Graph zeta_taurus(int L, double ζ, double k_avg, std::mt19937_64& rng) {
         return std::min(d, L - d);
     };
 
+    int half = L / 2;
+    int stride = half + 1;
+    std::vector<double> kernel(stride * stride);
+    for (int dx = 0; dx <= half; ++dx) {
+        for (int dy = 0; dy <= half; ++dy) {
+            double ddx = static_cast<double>(dx);
+            double ddy = static_cast<double>(dy);
+            kernel[dx * stride + dy] =
+                std::exp(-std::sqrt(ddx * ddx + ddy * ddy) / ζ);
+        }
+    }
+
     double s = 0.0;
     for (int j = 1; j < N; ++j) {
         int rj = j / L, cj = j % L;
-        double dx = static_cast<double>(toroidal_dist(0, rj));
-        double dy = static_cast<double>(toroidal_dist(0, cj));
-        s += std::exp(-std::sqrt(dx * dx + dy * dy) / ζ);
+        int dx = toroidal_dist(0, rj);
+        int dy = toroidal_dist(0, cj);
+        s += kernel[dx * stride + dy];
     }
     double coeff = k_avg / s;
 
@@ -41,9 +53,9 @@ Graph zeta_taurus(int L, double ζ, double k_avg, std::mt19937_64& rng) {
         int rj = j / L, cj = j % L;
         for (int i = 0; i < j; ++i) {
             int ri = i / L, ci = i % L;
-            double dx = static_cast<double>(toroidal_dist(ri, rj));
-            double dy = static_cast<double>(toroidal_dist(ci, cj));
-            double prob = coeff * std::exp(-std::sqrt(dx * dx + dy * dy) / ζ);
+            int dx = toroidal_dist(ri, rj);
+            int dy = toroidal_dist(ci, cj);
+            double prob = coeff * kernel[dx * stride + dy];
             if (dist(rng) < prob) {
                 boost::add_edge(i, j, g);
             }

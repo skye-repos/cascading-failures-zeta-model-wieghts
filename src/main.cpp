@@ -1,8 +1,8 @@
+#include "betweenness.h"
 #include "graph_generators.h"
 #include "simulate.h"
 #include "util.h"
 #include <algorithm>
-#include <boost/graph/betweenness_centrality.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -13,6 +13,7 @@
 #include <omp.h>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -173,17 +174,10 @@ int main(int argc, char *argv[]) {
 
 #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < n_θ; ++i) {
-      Graph cap_g = g;
-      set_θ_weights(cap_g, θ_list[i]);
-      auto &cap = capacity[i];
-      boost::brandes_betweenness_centrality(
-          cap_g,
-          boost::centrality_map(
-              boost::make_iterator_property_map(
-                  cap.begin(), boost::get(boost::vertex_index, cap_g)))
-              .weight_map(boost::get(boost::edge_weight, cap_g))
-              .vertex_index_map(boost::get(boost::vertex_index, cap_g)));
-      for (auto &c : cap)
+      BCMWorkspace ws;
+      betweenness(g, θ_list[i], ws);
+      capacity[i] = std::move(ws.bc);
+      for (auto &c : capacity[i])
         c *= (1.0 + α);
     }
 
@@ -208,7 +202,7 @@ int main(int argc, char *argv[]) {
           boost::remove_edge(rem_list[k].first, rem_list[k].second, h);
         }
 
-        auto [h_final, t] = cascade(h, capacity[i], θ);
+        auto [h_final, t] = cascade(std::move(h), capacity[i], θ);
         int gc = giant_component_size(h_final);
         double S_val = static_cast<double>(gc) / boost::num_vertices(h_final);
 

@@ -1,7 +1,5 @@
 #include "simulate.h"
-#include "util.h"
-#include <boost/graph/betweenness_centrality.hpp>
-#include <boost/graph/graph_utility.hpp>
+#include "betweenness.h"
 #include <algorithm>
 #include <cmath>
 #include <random>
@@ -26,41 +24,17 @@ SeedFailure seed_failure(const Graph& g, double p_min, std::mt19937_64& rng) {
     return {std::move(all_edges)};
 }
 
-void set_θ_weights(Graph& g, double θ) {
-    auto d = degrees(g);
-    auto [ei, ei_end] = boost::edges(g);
-    for (auto it = ei; it != ei_end; ++it) {
-        int u = static_cast<int>(boost::source(*it, g));
-        int v = static_cast<int>(boost::target(*it, g));
-        double w = std::pow(std::max(1e-15, static_cast<double>(d[u]) * d[v]), θ);
-        boost::put(boost::edge_weight, g, *it, w);
-    }
-}
-
-std::pair<Graph, int> cascade(const Graph& g, const std::vector<double>& capacity, double θ) {
-    Graph h = g;
+std::pair<Graph, int> cascade(Graph h, const std::vector<double>& capacity, double θ) {
     int t_step = 1;
+    int nv = static_cast<int>(boost::num_vertices(h));
+    BCMWorkspace ws;
+    std::vector<int> failed;
+    failed.reserve(nv);
 
     while (true) {
-        set_θ_weights(h, θ);
+        const auto& bc = betweenness(h, θ, ws);
 
-        int nv = static_cast<int>(boost::num_vertices(h));
-        std::vector<double> bc(nv, 0.0);
-
-        try {
-            boost::brandes_betweenness_centrality(h,
-                boost::centrality_map(
-                    boost::make_iterator_property_map(bc.begin(),
-                        boost::get(boost::vertex_index, h))
-                )
-                .weight_map(boost::get(boost::edge_weight, h))
-                .vertex_index_map(boost::get(boost::vertex_index, h))
-            );
-        } catch (...) {
-            break;
-        }
-
-        std::vector<int> failed;
+        failed.clear();
         for (int v = 0; v < nv; ++v) {
             if (bc[v] > capacity[v]) {
                 failed.push_back(v);
@@ -76,5 +50,5 @@ std::pair<Graph, int> cascade(const Graph& g, const std::vector<double>& capacit
         ++t_step;
     }
 
-    return {h, t_step};
+    return {std::move(h), t_step};
 }

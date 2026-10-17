@@ -10,6 +10,4 @@ struct SeedFailure {
 
 SeedFailure seed_failure(const Graph& g, double p_min, std::mt19937_64& rng);
 
-void set_θ_weights(Graph& g, double θ);
-
-std::pair<Graph, int> cascade(const Graph& g, const std::vector<double>& capacity, double θ);
+std::pair<Graph, int> cascade(Graph g, const std::vector<double>& capacity, double θ);

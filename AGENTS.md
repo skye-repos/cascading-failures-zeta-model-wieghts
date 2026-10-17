@@ -31,7 +31,8 @@ are the changes to implement here.
 ```
 src/
   main.cpp              driver: arg parsing, realizations, θ/p sweep, CSV/manifest output (2-space indent)
-  simulate.cpp/.h       seed_failure, set_θ_weights, cascade (4-space indent)
+  simulate.cpp/.h       seed_failure, cascade (4-space indent)
+  betweenness.cpp/.h    CSR Brandes BC with reusable workspace (4-space indent)
   graph_generators.cpp  zeta_taurus + pure ER builders (4-space indent)
   util.cpp/.h           degrees, degree_distribution, graph stats, manifest, CSV, linspace
 aggregate.jl            post-processing: mean/SEM S(p), p_c, ΔS (Julia)
@@ -60,11 +61,22 @@ paths / betweenness use these edge weights via Dijkstra underneath Brandes.
 
 ```bash
 cmake -B build
-cmake --build build -j
-./build/cascade -L 100 -z 15.0 -n 21 --seed 12345 --realizations 5
+cmake --build build --parallel "$(nproc)"
+OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
+    --seed 12345 --realizations 5
 ```
 
 - Requires Boost headers and OpenMP.
+- CMake defaults to a `Release` build, enables native CPU tuning
+  (`-march=native`/`-mcpu=native`) and LTO. Disable them with
+  `-DNATIVE_OPT=OFF` or `-DENABLE_LTO=OFF` if portability is required.
+- `run_tiers.sh` defaults `OMP_NUM_THREADS` to the physical-core count and sets
+  `OMP_PROC_BIND=spread`, `OMP_DYNAMIC=false`, and `OMP_WAIT_POLICY=active`;
+  override these environment variables as needed (e.g. use logical cores to
+  test hyperthreading).
+- On multi-socket Xeons, set the performance CPU governor and consider
+  `numactl --interleave=all ./build/cascade ...` to spread the shared graph
+  across memory nodes.
 - macOS deployment target is set to 14.0 in `CMakeLists.txt`.
 - `--help` / bad flag prints usage.
 - Julia post-processing uses `Project.toml` (run `julia --project=. -e
@@ -257,6 +269,10 @@ backward compatible where possible.
 ## 10. Cost notes
 
 Betweenness centrality dominates runtime (O(NM) per cascade step, repeated per
-θ). L = 100 is the configured ceiling (N = 10,000). The tiered design (full
-sweep at one L, FSS at few ζ/L ratios) exists to keep the total cost bounded.
-Each OpenMP thread copies the graph per (θ, p) — watch peak memory.
+θ). `betweenness.cpp` implements Brandes directly on a CSR view with reusable
+workspace buffers; it is byte-identical to Boost's implementation on the
+regression cases. `betweenness()` recomputes degrees and weights from the
+current graph on every call, and `cascade()` calls it once per time step. L = 100
+is the configured ceiling (N = 10,000). The tiered design (full sweep at one L,
+FSS at few ζ/L ratios) exists to keep the total cost bounded. Each OpenMP thread
+copies the graph per (θ, p) — watch peak memory.
