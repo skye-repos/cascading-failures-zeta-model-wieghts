@@ -1,49 +1,13 @@
+module Aggregate
+
 using CSV
 using DataFrames
 using Random
 using Statistics
 
-include("pc_utils.jl")
-using .PCUtils
+using ..PCUtils
 
-const DEFAULT_ROOT = joinpath("results", "CSV")
-const DEFAULT_OUT = joinpath("results", "analysis")
-
-function parse_args(args)
-    root = DEFAULT_ROOT
-    out = DEFAULT_OUT
-    sigma_pts = 2.0
-    bootstrap = 1000
-    seed = 20261017
-
-    i = 1
-    while i <= length(args)
-        arg = args[i]
-        if arg == "--root" && i < length(args)
-            root = args[i + 1]
-            i += 2
-        elseif arg == "--out" && i < length(args)
-            out = args[i + 1]
-            i += 2
-        elseif arg == "--sigma-pts" && i < length(args)
-            sigma_pts = parse(Float64, args[i + 1])
-            i += 2
-        elseif arg == "--bootstrap" && i < length(args)
-            bootstrap = parse(Int, args[i + 1])
-            i += 2
-        elseif arg == "--seed" && i < length(args)
-            seed = parse(Int, args[i + 1])
-            i += 2
-        elseif arg == "--help" || arg == "-h"
-            println("Usage: julia aggregate.jl [--root DIR] [--out DIR] " *
-                    "[--sigma-pts 2.0] [--bootstrap 1000] [--seed N]")
-            exit(0)
-        else
-            error("unknown argument: $arg")
-        end
-    end
-    return (; root, out, sigma_pts, bootstrap, seed)
-end
+export run_aggregate
 
 function bootstrap_pc(p, S_realizations, sigma_pts, B, rng)
     R = size(S_realizations, 1)
@@ -90,12 +54,12 @@ function manifest_stats(path)
     )
 end
 
-function main()
-    opts = parse_args(ARGS)
-    runs = discover_realizations(opts.root)
-    isempty(runs) && error("no realization directories found under $(opts.root)")
+function run_aggregate(; root, out, sigma_pts = 2.0, bootstrap = 1000,
+                       seed = 20261017)
+    runs = discover_realizations(root)
+    isempty(runs) && error("no realization directories found under $root")
 
-    mkpath(opts.out)
+    mkpath(out)
 
     groups = Dict{Tuple{Int,Float64,String},Vector{NamedTuple}}()
     for run in runs
@@ -107,7 +71,7 @@ function main()
     s_long = NamedTuple[]
     degree_rows = NamedTuple[]
 
-    rng = MersenneTwister(opts.seed)
+    rng = MersenneTwister(seed)
 
     for key in sort(collect(keys(groups)); by = k -> (k[1], k[3], k[2]))
         L, ζ, topology = key
@@ -166,7 +130,7 @@ function main()
         np = length(p)
         nθ = length(θ)
 
-        group_dir = joinpath(opts.out, "L = $L",
+        group_dir = joinpath(out, "L = $L",
                              "ζ = $ζ" * (topology == "ER" ? ", topology = ER" : ""))
         mkpath(group_dir)
 
@@ -179,12 +143,12 @@ function main()
             S_sem[i, :] .= R > 1 ? vec(std(S_reals; dims = 1, corrected = true)) ./ sqrt(R) :
                                   zeros(np)
 
-            pc_real = [find_critical(p, S_reals[r, :]; sigma_pts = opts.sigma_pts)
+            pc_real = [find_critical(p, S_reals[r, :]; sigma_pts = sigma_pts)
                        for r in 1:R]
-            pc_central = find_critical(p, S_mean[i, :]; sigma_pts = opts.sigma_pts)
+            pc_central = find_critical(p, S_mean[i, :]; sigma_pts = sigma_pts)
             pc_se = R > 1 ? std(pc_real; corrected = true) / sqrt(R) : 0.0
             pc_boot_mean, pc_boot_se = bootstrap_pc(
-                p, S_reals, opts.sigma_pts, opts.bootstrap, rng)
+                p, S_reals, sigma_pts, bootstrap, rng)
 
             k = argmin(abs.(p .- pc_central))
             klo = max(k - 1, 1)
@@ -259,11 +223,11 @@ function main()
     end
 
     summary_df = DataFrame(summary_rows)
-    CSV.write(joinpath(opts.out, "p_c_summary.csv"), summary_df)
-    CSV.write(joinpath(opts.out, "S_mean.csv"), DataFrame(s_long))
+    CSV.write(joinpath(out, "p_c_summary.csv"), summary_df)
+    CSV.write(joinpath(out, "S_mean.csv"), DataFrame(s_long))
 
     if !isempty(degree_rows)
-        CSV.write(joinpath(opts.out, "degree_summary.csv"), DataFrame(degree_rows))
+        CSV.write(joinpath(out, "degree_summary.csv"), DataFrame(degree_rows))
     end
 
     for topology in unique(summary_df.topology)
@@ -293,14 +257,14 @@ function main()
             end
 
             suffix = topology == "ER" ? ", ER" : ""
-            out_dir = joinpath(opts.out, "L = $L")
+            out_dir = joinpath(out, "L = $L")
             mkpath(out_dir)
             CSV.write(joinpath(out_dir, "p_c(θ, ζ)$suffix.csv"), pc_df)
             CSV.write(joinpath(out_dir, "indices$suffix.csv"), idx_df)
         end
     end
 
-    println("Wrote aggregate results to $(opts.out)")
+    println("Wrote aggregate results to $(out)")
 end
 
-main()
+end
