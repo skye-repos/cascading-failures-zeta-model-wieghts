@@ -55,9 +55,18 @@ function manifest_stats(path)
 end
 
 function run_aggregate(; root, out, sigma_pts = 2.0, bootstrap = 1000,
-                       seed = 20261017)
+                       seed = 20261017, L_values = Int[])
     runs = discover_realizations(root)
-    isempty(runs) && error("no realization directories found under $root")
+    if !isempty(L_values)
+        runs = [run for run in runs if run.L in L_values]
+        found = sort(unique(run.L for run in runs))
+        missing = setdiff(L_values, found)
+        if !isempty(missing)
+            println("  warning: no results for L = $(join(missing, ", "))")
+        end
+    end
+    isempty(runs) && error("no realization directories found under $root " *
+                           "for L values $(L_values)")
 
     mkpath(out)
 

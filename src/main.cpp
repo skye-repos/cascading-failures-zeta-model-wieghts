@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   int N_θ = 21;
   int n_pts = 50;
   std::uint64_t base_seed = 12345;
-  int n_realizations = 5;
+  int n_realizations = 10;
   Topology topology = Topology::Waxman;
   bool verbose = false;
 
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
           << "  -p, --n-pts n          number of p values (default 50)\n"
           << "  --seed n               base seed (default 12345); realization r\n"
           << "                         uses splitmix64(base_seed + r + 1)\n"
-          << "  --realizations n       number of realizations (default 5)\n"
+          << "  --realizations n       number of realizations (default 10)\n"
           << "  --topology t           waxman or er (default waxman)\n"
           << "  --verbose              print per-(θ,p) progress\n"
           << "  θ=0 is excluded automatically.\n";

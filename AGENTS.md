@@ -65,7 +65,7 @@ paths / betweenness use these edge weights via Dijkstra underneath Brandes.
 cmake -B build
 cmake --build build --parallel "$(nproc)"
 OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
-    --seed 12345 --realizations 5
+    --seed 12345 --realizations 10
 ```
 
 - Requires Boost headers and OpenMP.
@@ -87,7 +87,10 @@ OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
   - `julia --project=analysis analysis/main.jl aggregate`
   - `julia --project=analysis analysis/main.jl fss`
   - `julia --project=analysis analysis/main.jl plots`
-  - `julia --project=analysis analysis/main.jl all` (aggregate + fss + summary plots)
+  - `julia --project=analysis analysis/main.jl beta-zeta`
+  - `julia --project=analysis analysis/main.jl all` (aggregate + fss + summary plots + β(ζ) test)
+  - Run `all` (or `aggregate`) after new Tier 2 results; `fss` and `plots`
+    reuse existing aggregate outputs when present.
 
 ### Current CLI flags (see `src/main.cpp`)
 | Flag | Meaning | Default |
@@ -98,7 +101,7 @@ OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
 | `-n, --N-theta` | number of θ points (θ=0 auto-excluded) | 21 |
 | `-p, --n-pts` | number of p values | 50 |
 | `--seed` | base seed; realization `r` uses `splitmix64(base_seed + r + 1)` | 12345 |
-| `--realizations` | number of realizations | 5 |
+| `--realizations` | number of realizations | 10 |
 | `--topology` | `waxman` or `er` | waxman |
 | `--verbose` | print per-(θ,p) progress | off |
 
@@ -157,7 +160,7 @@ backward compatible where possible.
 
 ### Task 0 — Reproducible seeding
 - Add CLI flags: `--seed <uint64>` (base seed) and `--realizations <int>`
-  (default 5). Each realization uses
+  (default 10). Each realization uses
   `seed_r = splitmix64(base_seed + r + 1)`, so a run is fully reproducible.
 - Thread the base seed into every stochastic step (graph generation and
   `seed_failure`). Currently these share one `rng`; keep that, but make it
@@ -174,27 +177,27 @@ backward compatible where possible.
   `results/CSV/L = 100/ζ = .., k = 5, α = 2/realization = 0/...`. Keep the
   existing filename scheme inside.
 - Tier 1 configuration: **L = 100**, reduced ζ set of ~8–10 values, θ ∈ [-1, 1]
-  with Δθ = 0.1 (`-n 21`), **5 realizations**.
+  with Δθ = 0.1 (`-n 21`), **10 realizations**.
 
 ### Task 2 — Finite-size scaling (Tier 2)
-- Add a mode/script to run **fixed ζ/L ratios** at ratios `{0.1, 0.25, 0.5}`
-  for `L ∈ {25, 50, 75, 100}`, 5 realizations. Run Tier 2 at L = 25, 50, 75
-  with θ ∈ {-0.4, -0.2, 0.2, 0.4}; the L = 100 points are reused from Tier 1,
-  whose 21-point θ grid contains those values. This avoids overwriting the
-  Tier-1 L = 100 outputs.
+- Add a mode/script to run **fixed ζ/L ratios** at 10 ratios
+  `{0.05, 0.10, …, 0.50}` for `L ∈ {20, 40, 60, 80, 100}`, 10 realizations.
+  Run Tier 2 at L = 20, 40, 60, 80 with the same 21-point θ grid as L = 100;
+  the L = 100 points are reused from Tier 1. This matches Tier 1's 10 ζ values
+  at L = 100 and avoids overwriting the Tier-1 outputs.
 - Derive `ζ = ratio * L` in the orchestration layer (no code change needed if
   the driver already takes `-z`).
 - Because ζ/L is fixed, ζ scales with L. Confirm the graph generator handles
-  `ζ/L = 0.5` at L = 25 (ζ = 12.5) and small-`L` p_min logic
+  `ζ/L = 0.5` at L = 20 (ζ = 10) and small-`L` p_min logic
   (`p_min = (ζ/L < 0.01 for Waxman) ? 0.85 : 0.5`; ER forces 0.5).
-- Restrict the FSS comparison to the common θ values and ratios:
-  `julia --project=analysis analysis/main.jl fss --ratios 0.1,0.25,0.5 --thetas -0.4,-0.2,0.2,0.4`.
+- The analysis defaults to `L = 20,40,60,80,100` and uses all available
+  ratios/θ values; use `--L all` or `--ratios`/`--thetas` to override.
 - Provide an **orchestration script** (`run_tiers.sh`) that enumerates
   Tier 1/2/3 runs with explicit `--seed`/`--realizations` and writes
   `nohup/`-style logs.
 
 ### Task 3 — Regression stability (Tier 3)
-- Repeat the full ζ scan at **L = 100** (same reduced ζ set as Tier 1), 5
+- Repeat the full ζ scan at **L = 100** (same reduced ζ set as Tier 1), 10
   realizations, and confirm the CSVs are byte-identical to Tier 1.
 - This repeat is opt-in (`./run_tiers.sh 3`) and is not part of `all`, since
   L = 100 is already the Tier-1 maximum.
@@ -234,7 +237,18 @@ backward compatible where possible.
   `results/plots/summary/`. FSS outputs carry a `regime` column and are also
   written as `beta_vs_L_negative.csv`, `beta_vs_L_positive.csv`, and the
   corresponding `delta_S_vs_L_*` files; `fss_report.txt` contains separate
-  θ < 0 and θ > 0 sections.
+  θ < 0 and θ > 0 sections. Plotting also writes `delta_S_over_sqrtL.csv`,
+  ΔS/√L plots, a fitted ΔS scaling collapse (`delta_S_scaling_fit.csv`,
+  `delta_S_scaling.csv`, `delta_S_scaling_{negative,positive}.png`), and a
+  ζ-dependent power-law fit (`delta_S_scaling_zeta_fit.csv`,
+  `delta_S_scaling_zeta.csv`, `delta_S_scaling_zeta_{negative,positive}.png`).
+- `beta-zeta` refits all available (ζ, θ) pairs and tests β against ζ at fixed
+  L with a weighted slope and χ² heterogeneity test. Outputs:
+  `beta_vs_zeta.csv`, `beta_vs_ratio.csv`, `beta_zeta_test.csv`,
+  `beta_vs_zeta_{negative,positive}.png`,
+  `beta_vs_zeta_over_L_{negative,positive}.png`,
+  `beta_vs_L_over_zeta_{negative,positive}.png`, and per-ζ negative-regime
+  plots `beta_scaling_zeta=<ζ>_negative.png`.
 
 ---
 
@@ -242,10 +256,10 @@ backward compatible where possible.
 
 - [ ] Builds clean with `cmake --build build -j`.
 - [ ] Same CLI invocation with the same `--seed` reproduces byte-identical CSVs.
-- [ ] `--realizations 5` produces 5 distinct, correctly separated output sets.
+- [ ] `--realizations 10` produces 10 distinct, correctly separated output sets.
 - [ ] Tier 1/2/3 orchestration script exists and its parameters match Section 6.
 - [ ] Aggregation produces `S(p)` mean ± SE and `p_c ± err` for every point.
-- [ ] FSS script reports `beta(L)` and `ΔS(L)` for `L ∈ {25,50,75,100}`.
+- [ ] FSS script reports `beta(L)` and `ΔS(L)` for `L ∈ {20,40,60,80,100}`.
 - [ ] Manifest records seed, L, ζ, θ grid, n_pts, k_avg, alpha, realization id.
 - [ ] No change to the on-disk CSV column format consumed by
       `analysis/PlotResults.jl` and the downstream fitting code
@@ -255,16 +269,18 @@ backward compatible where possible.
 ## 8. Verification
 
 - Reproduce a tiny run: `./build/cascade -L 25 -z 2.5 -n 3 -p 5 --seed 1
-  --realizations 2` and confirm the two realizations differ but rerunning with
+  --realizations 10` and confirm the realizations differ but rerunning with
   `--seed 1` reproduces them.
 - Sanity-check `S(p)` is monotonically increasing in `p` on average and that
   `p_c` estimates move smoothly with ζ.
 - Run `julia --project=analysis analysis/main.jl test`,
   `julia --project=analysis analysis/main.jl aggregate`, and
-  `julia --project=analysis analysis/main.jl fss --ratios 0.1,0.25,0.5 --thetas -0.4,-0.2,0.2,0.4`
+  `julia --project=analysis analysis/main.jl fss`
   on the results, then `julia --project=analysis analysis/main.jl plots --plots first`
-  to confirm the analysis pipeline works. Confirm `fss_report.txt` has separate
-  θ < 0 and θ > 0 sections and that the per-regime β/ΔS CSVs and plots exist.
+  and `julia --project=analysis analysis/main.jl beta-zeta` to confirm the
+  analysis pipeline works. Confirm `fss_report.txt` has separate θ < 0 and
+  θ > 0 sections, that the per-regime β/ΔS CSVs and plots exist, and that
+  `beta_zeta_test.csv` reports the β(ζ) heterogeneity test.
 
 ## 9. Do / Don't
 
@@ -285,5 +301,6 @@ workspace buffers; it is byte-identical to Boost's implementation on the
 regression cases. `betweenness()` recomputes degrees and weights from the
 current graph on every call, and `cascade()` calls it once per time step. L = 100
 is the configured ceiling (N = 10,000). The tiered design (full sweep at one L,
-FSS at few ζ/L ratios) exists to keep the total cost bounded. Each OpenMP thread
-copies the graph per (θ, p) — watch peak memory.
+FSS at 10 ζ/L ratios with the full 21-point θ grid) keeps the total cost bounded
+but is still substantially larger than the earlier 3-ratio/4-θ Tier 2 design.
+Each OpenMP thread copies the graph per (θ, p) — watch peak memory.

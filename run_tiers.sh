@@ -24,7 +24,7 @@ export OMP_WAIT_POLICY="${OMP_WAIT_POLICY:-active}"
 
 BIN="${BIN:-./build/cascade}"
 SEED="${SEED:-12345}"
-REALIZATIONS="${REALIZATIONS:-5}"
+REALIZATIONS="${REALIZATIONS:-10}"
 NPTS="${NPTS:-50}"
 THETA_N="${THETA_N:-21}"
 LOG_DIR="${LOG_DIR:-nohup}"
@@ -39,9 +39,9 @@ Usage: ./run_tiers.sh [1|2|3|er|all] [options]
 
 Options:
   --seed N            base seed (default 12345)
-  --realizations N    realizations per run (default 5)
+  --realizations N    realizations per run (default 10)
   --n-pts N           number of p values (default 50)
-  --n-theta N         number of theta points for Tier 1/3/ER (default 21)
+  --n-theta N         number of theta points (default 21)
   --dry-run           print commands without running them
   --background        launch each run with nohup in the background
 
@@ -113,13 +113,13 @@ tier1() {
 }
 
 tier2() {
-    echo "Tier 2: fixed zeta/L ratios, theta in {-0.4,-0.2,0.2,0.4}"
+    echo "Tier 2: L=20,40,60,80; 10 zeta/L ratios; full theta grid"
     echo "  L=100 is reused from Tier 1"
-    for ratio in 0.1 0.25 0.5; do
-        for L in 25 50 75; do
+    for ratio in 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50; do
+        for L in 20 40 60 80; do
             z=$(awk -v r="$ratio" -v l="$L" 'BEGIN { printf "%.10g", r * l }')
             run_case "tier2-L${L}-ratio${ratio}" -L "$L" -z "$z" \
-                -n 5 --tmin -0.4 --tmax 0.4
+                -n "$THETA_N" --tmin -1 --tmax 1
         done
     done
 }

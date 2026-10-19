@@ -19,6 +19,12 @@ function parse_float_list(text)
     return parse.(Float64, split(text, ","))
 end
 
+function parse_int_list(text)
+    s = lowercase(strip(text))
+    (isempty(s) || s == "all") && return Int[]
+    return parse.(Int, split(s, ","))
+end
+
 function usage()
     println("""
 Usage:
@@ -29,19 +35,21 @@ Commands:
   aggregate   S(p) mean/SEM, p_c, ΔS, degree summaries
   fss         β(L), ΔS(L), saturation report
   plots       summary and/or per-realization plots
+  beta-zeta   test whether β depends on ζ at fixed L
   test        run p_c unit tests
 
 Options:
   --root DIR          raw CSV root (default <repo>/results/CSV)
   --out DIR           analysis output (default <repo>/results/analysis)
   --plot-dir DIR      plot output (default <repo>/results/plots)
+  --L LIST|all        L values (default 20,40,60,80,100)
   --sigma-pts N       p_c smoothing width in grid points (default 2)
   --bootstrap N       bootstrap samples for p_c (default 1000)
   --seed N            bootstrap RNG seed (default 20261017)
   --window Δp         FSS fit window above p_c (default 0.1)
   --min-points N      minimum points per β fit (default 3)
-  --ratios LIST|all   FSS ratios (default 0.1,0.25,0.5)
-  --thetas LIST|all   FSS θ values (default -0.4,-0.2,0.2,0.4)
+  --ratios LIST|all   FSS ratios (default all available: 0.05..0.50)
+  --thetas LIST|all   FSS θ values (default all available)
   --plots MODE        summary, first, all, or none (default summary)
   -h, --help          show this message
 
@@ -50,6 +58,7 @@ Examples:
   julia --project=analysis analysis/main.jl aggregate
   julia --project=analysis analysis/main.jl fss
   julia --project=analysis analysis/main.jl plots --plots all
+  julia --project=analysis analysis/main.jl beta-zeta
   julia --project=analysis analysis/main.jl test
 """)
 end
@@ -64,8 +73,9 @@ function parse_args(args)
     seed = 20261017
     window = 0.1
     min_points = 3
-    ratios = [0.1, 0.25, 0.5]
-    thetas = [-0.4, -0.2, 0.2, 0.4]
+    ratios = Float64[]
+    thetas = Float64[]
+    L_values = [20, 40, 60, 80, 100]
     plot_mode = "summary"
 
     i = 1
@@ -84,6 +94,9 @@ function parse_args(args)
             i += 2
         elseif arg == "--plot-dir" && i < length(args)
             plot_dir = args[i + 1]
+            i += 2
+        elseif arg == "--L" && i < length(args)
+            L_values = parse_int_list(args[i + 1])
             i += 2
         elseif arg == "--sigma-pts" && i < length(args)
             sigma_pts = parse(Float64, args[i + 1])
@@ -117,13 +130,13 @@ function parse_args(args)
         end
     end
 
-    command in ("all", "aggregate", "fss", "plots", "test") ||
+    command in ("all", "aggregate", "fss", "plots", "beta-zeta", "test") ||
         error("unknown command: $command")
     plot_mode in ("summary", "first", "all", "none") ||
         error("unknown plot mode: $plot_mode")
 
     return (; command, root, out, plot_dir, sigma_pts, bootstrap, seed,
-            window, min_points, ratios, thetas, plot_mode)
+            window, min_points, ratios, thetas, L_values, plot_mode)
 end
 
 function ensure_aggregate(opts)
@@ -133,7 +146,8 @@ function ensure_aggregate(opts)
         println("[aggregate] outputs missing; running aggregate")
         run_aggregate(; root = opts.root, out = opts.out,
                       sigma_pts = opts.sigma_pts,
-                      bootstrap = opts.bootstrap, seed = opts.seed)
+                      bootstrap = opts.bootstrap, seed = opts.seed,
+                      L_values = opts.L_values)
     end
 end
 
@@ -147,6 +161,16 @@ function ensure_fss(opts)
                 min_points = opts.min_points,
                 ratios = opts.ratios, thetas = opts.thetas)
     end
+end
+
+function run_beta_zeta_stage(opts)
+    ensure_aggregate(opts)
+    full_dir = joinpath(opts.out, "full_fits")
+    run_fss(; root = opts.out, out = full_dir, window = opts.window,
+            min_points = opts.min_points,
+            ratios = Float64[], thetas = Float64[])
+    run_beta_zeta(; fit_file = joinpath(full_dir, "beta_fits.csv"),
+                  out = opts.out, plot_dir = opts.plot_dir)
 end
 
 function main()
@@ -166,7 +190,8 @@ function main()
     if opts.command == "aggregate"
         run_aggregate(; root = opts.root, out = opts.out,
                       sigma_pts = opts.sigma_pts,
-                      bootstrap = opts.bootstrap, seed = opts.seed)
+                      bootstrap = opts.bootstrap, seed = opts.seed,
+                      L_values = opts.L_values)
     elseif opts.command == "fss"
         ensure_aggregate(opts)
         run_fss(; root = opts.out, out = opts.out, window = opts.window,
@@ -178,19 +203,25 @@ function main()
         end
         run_plots(; root = opts.root, out = opts.out,
                   plot_dir = opts.plot_dir, mode = Symbol(opts.plot_mode),
-                  ratios = opts.ratios, thetas = opts.thetas)
+                  ratios = opts.ratios, thetas = opts.thetas,
+                  L_values = opts.L_values)
+    elseif opts.command == "beta-zeta"
+        run_beta_zeta_stage(opts)
     elseif opts.command == "all"
         run_aggregate(; root = opts.root, out = opts.out,
                       sigma_pts = opts.sigma_pts,
-                      bootstrap = opts.bootstrap, seed = opts.seed)
+                      bootstrap = opts.bootstrap, seed = opts.seed,
+                      L_values = opts.L_values)
         run_fss(; root = opts.out, out = opts.out, window = opts.window,
                 min_points = opts.min_points,
                 ratios = opts.ratios, thetas = opts.thetas)
         if opts.plot_mode != "none"
             run_plots(; root = opts.root, out = opts.out,
                       plot_dir = opts.plot_dir, mode = Symbol(opts.plot_mode),
-                      ratios = opts.ratios, thetas = opts.thetas)
+                      ratios = opts.ratios, thetas = opts.thetas,
+                      L_values = opts.L_values)
         end
+        run_beta_zeta_stage(opts)
     end
 end
 
