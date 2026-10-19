@@ -1,0 +1,45 @@
+Topology: waxman, L=75, ζ=18.75, k_avg=5, realizations=5, base_seed=12345
+  θ values: 4
+  p_min = 0.5, n_pts = 50
+Realization 0 (seed 14663218685290508263)...
+  Vertices: 5625, Edges: 14171
+  seed edges available for removal: 7086
+  Running cascade simulations...
+  k_max = 16
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  done; results in "results/CSV/L = 75/ζ = 18.75, k = 5, α = 2/realization = 0"
+Realization 1 (seed 5886303152054975053)...
+  Vertices: 5625, Edges: 14176
+  seed edges available for removal: 7088
+  Running cascade simulations...
+  k_max = 16
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  done; results in "results/CSV/L = 75/ζ = 18.75, k = 5, α = 2/realization = 1"
+Realization 2 (seed 9972380927157469849)...
+  Vertices: 5625, Edges: 13963
+  seed edges available for removal: 6982
+  Running cascade simulations...
+  k_max = 15
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  done; results in "results/CSV/L = 75/ζ = 18.75, k = 5, α = 2/realization = 2"
+Realization 3 (seed 2960806964422387119)...
+  Vertices: 5625, Edges: 14008
+  seed edges available for removal: 7004
+  Running cascade simulations...
+  k_max = 14
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  done; results in "results/CSV/L = 75/ζ = 18.75, k = 5, α = 2/realization = 3"
+Realization 4 (seed 10354275342872421721)...
+  Vertices: 5625, Edges: 13942
+  seed edges available for removal: 6971
+  Running cascade simulations...
+  k_max = 14
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 18.75.csv
+  done; results in "results/CSV/L = 75/ζ = 18.75, k = 5, α = 2/realization = 4"
+Done. Results in "results/CSV/L = 75/ζ = 18.75, k = 5, α = 2/"
+Total time: 2527.73 s

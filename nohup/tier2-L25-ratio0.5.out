@@ -1,0 +1,45 @@
+Topology: waxman, L=25, ζ=12.5, k_avg=5, realizations=5, base_seed=12345
+  θ values: 4
+  p_min = 0.5, n_pts = 50
+Realization 0 (seed 14663218685290508263)...
+  Vertices: 625, Edges: 1571
+  seed edges available for removal: 786
+  Running cascade simulations...
+  k_max = 14
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  done; results in "results/CSV/L = 25/ζ = 12.5, k = 5, α = 2/realization = 0"
+Realization 1 (seed 5886303152054975053)...
+  Vertices: 625, Edges: 1618
+  seed edges available for removal: 809
+  Running cascade simulations...
+  k_max = 12
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  done; results in "results/CSV/L = 25/ζ = 12.5, k = 5, α = 2/realization = 1"
+Realization 2 (seed 9972380927157469849)...
+  Vertices: 625, Edges: 1522
+  seed edges available for removal: 761
+  Running cascade simulations...
+  k_max = 13
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  done; results in "results/CSV/L = 25/ζ = 12.5, k = 5, α = 2/realization = 2"
+Realization 3 (seed 2960806964422387119)...
+  Vertices: 625, Edges: 1562
+  seed edges available for removal: 781
+  Running cascade simulations...
+  k_max = 13
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  done; results in "results/CSV/L = 25/ζ = 12.5, k = 5, α = 2/realization = 3"
+Realization 4 (seed 10354275342872421721)...
+  Vertices: 625, Edges: 1580
+  seed edges available for removal: 790
+  Running cascade simulations...
+  k_max = 12
+  wrote  Gt Component Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  wrote  Cascade Time Nθ=4, dθ=0.2, θ∈[-0.4,0.4] ζ = 12.5.csv
+  done; results in "results/CSV/L = 25/ζ = 12.5, k = 5, α = 2/realization = 4"
+Done. Results in "results/CSV/L = 25/ζ = 12.5, k = 5, α = 2/"
+Total time: 42.1384 s
