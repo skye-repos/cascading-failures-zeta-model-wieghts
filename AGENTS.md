@@ -35,13 +35,15 @@ src/
   betweenness.cpp/.h    CSR Brandes BC with reusable workspace (4-space indent)
   graph_generators.cpp  zeta_taurus + pure ER builders (4-space indent)
   util.cpp/.h           degrees, degree_distribution, graph stats, manifest, CSV, linspace
-aggregate.jl            post-processing: mean/SEM S(p), p_c, ΔS (Julia)
-fss.jl                  finite-size scaling: β(L), ΔS(L), saturation report (Julia)
-plot_results.jl         post-processing: comparison plots + heatmaps (Julia)
-pc_utils.jl             shared p_c smoothing/jump routine (Julia)
-test_pc.jl              synthetic-sigmoid unit test for p_c (Julia)
-Project.toml            Julia environment for the post-processing scripts
-Manifest.toml            resolved Julia package versions
+analysis/
+  main.jl               single post-processing entrypoint / CLI driver
+  Aggregate.jl          mean/SEM S(p), p_c, ΔS, degree summaries (Julia)
+  FSS.jl                finite-size scaling: β(L), ΔS(L), saturation (Julia)
+  PlotResults.jl        per-realization + summary plots (Julia)
+  PCUtils.jl            shared p_c smoothing/jump routine (Julia)
+  test_pc.jl            synthetic-sigmoid unit test for p_c (Julia)
+  Project.toml          Julia environment for post-processing
+  Manifest.toml         resolved Julia package versions
 run_tiers.sh            Tier 1/2/3 + ER orchestration (explicit seeds)
 run.sh                  legacy example nohup launch lines
 CMakeLists.txt          C++20, Boost headers, OpenMP
@@ -79,11 +81,13 @@ OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
   across memory nodes.
 - macOS deployment target is set to 14.0 in `CMakeLists.txt`.
 - `--help` / bad flag prints usage.
-- Julia post-processing uses `Project.toml` (run `julia --project=. -e
-  'using Pkg; Pkg.instantiate()'` once):
-  `julia --project=. test_pc.jl`,
-  `julia --project=. aggregate.jl`, `julia --project=. fss.jl`,
-  `julia --project=. plot_results.jl`.
+- Julia post-processing lives in `analysis/` and uses `analysis/Project.toml`
+  (run `julia --project=analysis -e 'using Pkg; Pkg.instantiate()'` once):
+  - `julia --project=analysis analysis/main.jl test`
+  - `julia --project=analysis analysis/main.jl aggregate`
+  - `julia --project=analysis analysis/main.jl fss`
+  - `julia --project=analysis analysis/main.jl plots`
+  - `julia --project=analysis analysis/main.jl all` (aggregate + fss + summary plots)
 
 ### Current CLI flags (see `src/main.cpp`)
 | Flag | Meaning | Default |
@@ -110,8 +114,9 @@ containing:
 
 The p header is the target surviving fraction `linspace(p_min, 1, n_pts)`;
 `round((1-p)*n_e)` links are removed for each target p.
-`julia --project=. plot_results.jl <csv_dir>` renders comparison/heatmap PNGs
-into `results/plots/`.
+`julia --project=analysis analysis/main.jl plots --plots first` renders
+per-realization comparison/heatmap PNGs into `results/plots/`; summary plots
+go to `results/plots/summary/`.
 
 ---
 
@@ -140,8 +145,8 @@ into `results/plots/`.
 4. **No topology control.** Only the Waxman-ζ generator exists; Referee 1 asks
    for degree-distribution statistics and a non-scale-free control.
 5. Originally the pipeline was `(L, ζ) -> one CSV per θ` with no aggregation
-   across realizations and no FSS/β stage. The Julia scripts `aggregate.jl` and
-   `fss.jl` now provide both.
+   across realizations and no FSS/β stage. The `analysis/` Julia modules now
+   provide both through `analysis/main.jl`.
 
 ---
 
@@ -183,7 +188,7 @@ backward compatible where possible.
   `ζ/L = 0.5` at L = 25 (ζ = 12.5) and small-`L` p_min logic
   (`p_min = (ζ/L < 0.01 for Waxman) ? 0.85 : 0.5`; ER forces 0.5).
 - Restrict the FSS comparison to the common θ values and ratios:
-  `julia --project=. fss.jl --ratios 0.1,0.25,0.5 --thetas -0.4,-0.2,0.2,0.4`.
+  `julia --project=analysis analysis/main.jl fss --ratios 0.1,0.25,0.5 --thetas -0.4,-0.2,0.2,0.4`.
 - Provide an **orchestration script** (`run_tiers.sh`) that enumerates
   Tier 1/2/3 runs with explicit `--seed`/`--realizations` and writes
   `nohup/`-style logs.
@@ -205,28 +210,31 @@ backward compatible where possible.
   duplicate it here.
 
 ### Task 5 — Aggregation and β/FSS analysis (Julia, new)
-- Add `aggregate.jl` that reads per-realization CSVs and produces, per
-  (L, ζ, θ):
-  - `S(p)` mean and standard error across realizations,
-  - `p_c` estimate with uncertainty,
-  - the jump `ΔS(L)`.
+- `analysis/main.jl` is the single entrypoint. It calls:
+  - `analysis/Aggregate.jl`, which reads per-realization CSVs and produces, per
+    (L, ζ, θ): `S(p)` mean and standard error, `p_c` with uncertainty, and
+    `ΔS(L)`;
+  - `analysis/FSS.jl`, which fits `S(p) - S(p_c) = k (p - p_c)^beta` only in
+    the fixed window `p_c < p ≤ p_c + 0.1` (never over all `[p_c, 1]`), reports
+    the window and fit quality, and computes `beta(L)` and `ΔS(L)` separately
+    for the θ < 0 and θ > 0 regimes;
+  - `analysis/PlotResults.jl`, which produces per-realization plots and summary
+    plots.
 - `p_c` is the point where the second-order finite difference has the largest
   jump. Smooth `S(p)` along the p axis first with a Gaussian kernel whose width
   is `sigma_pts * Δp` (default 2 grid points), then compute second differences
   and select the largest sign-change jump. Bootstrap over realizations for the
-  uncertainty. `test_pc.jl` validates this routine on a synthetic sigmoid with
-  a known transition.
-- Add `fss.jl` that:
-  - fits `S(p) - S(p_c) = k (p - p_c)^beta` **only in the fixed window
-    `p_c < p ≤ p_c + 0.1`** (never over all `[p_c, 1]`); report the window and
-    fit quality,
-  - computes `beta(L)` and `ΔS(L)` across the five sizes and reports whether each
-    saturates with L.
+  uncertainty. `analysis/test_pc.jl` validates this routine on a synthetic
+  sigmoid with a known transition.
 - **Decision rule:** if `beta(L)` is constant within error, report the single
   universal value and treat any ζ,θ dependence as a finite-size artifact; if it
   drifts without saturation, report β as unresolved. Never force a β(ζ,θ) form.
-- All post-processing is Julia; `plot_results.jl` replaces the old Python
-  plotting script. Aggregated CSVs and FSS outputs go under `results/analysis/`.
+- All post-processing is Julia and lives in `analysis/`. Aggregated CSVs and
+  FSS outputs go under `results/analysis/`; summary plots go under
+  `results/plots/summary/`. FSS outputs carry a `regime` column and are also
+  written as `beta_vs_L_negative.csv`, `beta_vs_L_positive.csv`, and the
+  corresponding `delta_S_vs_L_*` files; `fss_report.txt` contains separate
+  θ < 0 and θ > 0 sections.
 
 ---
 
@@ -239,9 +247,10 @@ backward compatible where possible.
 - [ ] Aggregation produces `S(p)` mean ± SE and `p_c ± err` for every point.
 - [ ] FSS script reports `beta(L)` and `ΔS(L)` for `L ∈ {25,50,75,100}`.
 - [ ] Manifest records seed, L, ζ, θ grid, n_pts, k_avg, alpha, realization id.
-- [ ] No change to the on-disk CSV column format consumed by `plot_results.jl`
-      and the downstream fitting code (see `0 - simulations/2a - fitting`).
-- [ ] `julia --project=. test_pc.jl` passes.
+- [ ] No change to the on-disk CSV column format consumed by
+      `analysis/PlotResults.jl` and the downstream fitting code
+      (see `0 - simulations/2a - fitting`).
+- [ ] `julia --project=analysis analysis/main.jl test` passes.
 
 ## 8. Verification
 
@@ -250,10 +259,12 @@ backward compatible where possible.
   `--seed 1` reproduces them.
 - Sanity-check `S(p)` is monotonically increasing in `p` on average and that
   `p_c` estimates move smoothly with ζ.
-- Run `julia --project=. test_pc.jl`, `julia --project=. aggregate.jl`, and
-  `julia --project=. fss.jl --ratios 0.1,0.25,0.5 --thetas -0.4,-0.2,0.2,0.4`
-  on the results, then `julia --project=. plot_results.jl <csv_dir>` on a fresh
-  output to confirm the analysis pipeline works.
+- Run `julia --project=analysis analysis/main.jl test`,
+  `julia --project=analysis analysis/main.jl aggregate`, and
+  `julia --project=analysis analysis/main.jl fss --ratios 0.1,0.25,0.5 --thetas -0.4,-0.2,0.2,0.4`
+  on the results, then `julia --project=analysis analysis/main.jl plots --plots first`
+  to confirm the analysis pipeline works. Confirm `fss_report.txt` has separate
+  θ < 0 and θ > 0 sections and that the per-regime β/ΔS CSVs and plots exist.
 
 ## 9. Do / Don't
 
@@ -262,8 +273,8 @@ backward compatible where possible.
 - **Do** use `std::mt19937_64` consistently.
 - **Don't** refactor unrelated code or reformat files.
 - **Don't** add C++ dependencies beyond what CMake already finds
-  (Boost and OpenMP). Julia post-processing uses the packages in `Project.toml`
-  (DataFrames, CSV, Plots).
+  (Boost and OpenMP). Julia post-processing uses the packages in
+  `analysis/Project.toml` (DataFrames, CSV, Plots).
 - **Don't** remove the degree-distribution output.
 
 ## 10. Cost notes
