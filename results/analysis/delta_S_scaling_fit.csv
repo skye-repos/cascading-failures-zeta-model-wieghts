@@ -1,0 +1,3 @@
+topology,regime,alpha,log_rms,pct_scatter,n_points
+waxman,negative,0.8195,0.12825626745651308,13.684430156786998,50
+waxman,positive,0.728,0.13578986496175904,14.544117097935306,50
