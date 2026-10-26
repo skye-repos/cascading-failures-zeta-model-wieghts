@@ -1,0 +1,23 @@
+{
+  "base_seed": 12345,
+  "realization_id": 3,
+  "realization_seed": 2960806964422387119,
+  "L": 100,
+  "zeta": 0,
+  "topology": "ER",
+  "theta_min": -1,
+  "theta_max": 1,
+  "N_theta": 21,
+  "n_theta": 20,
+  "n_pts": 50,
+  "k_avg": 5,
+  "alpha": 2,
+  "p_min": 0.5,
+  "graph": {
+    "n_vertices": 10000,
+    "n_edges": 24981,
+    "k_mean": 4.9962,
+    "k_variance": 4.90238555999985,
+    "k_second_moment": 29.8644
+  }
+}

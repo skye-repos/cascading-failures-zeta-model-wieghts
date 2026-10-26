@@ -1,0 +1,85 @@
+Topology: waxman, L=80, ζ=8, k_avg=5, realizations=10, base_seed=12345
+  θ values: 20
+  p_min = 0.5, n_pts = 50
+Realization 0 (seed 14663218685290508263)...
+  Vertices: 6400, Edges: 16107
+  seed edges available for removal: 8054
+  Running cascade simulations...
+  k_max = 16
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 0"
+Realization 1 (seed 5886303152054975053)...
+  Vertices: 6400, Edges: 16154
+  seed edges available for removal: 8077
+  Running cascade simulations...
+  k_max = 16
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 1"
+Realization 2 (seed 9972380927157469849)...
+  Vertices: 6400, Edges: 15811
+  seed edges available for removal: 7906
+  Running cascade simulations...
+  k_max = 15
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 2"
+Realization 3 (seed 2960806964422387119)...
+  Vertices: 6400, Edges: 15892
+  seed edges available for removal: 7946
+  Running cascade simulations...
+  k_max = 16
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 3"
+Realization 4 (seed 10354275342872421721)...
+  Vertices: 6400, Edges: 15834
+  seed edges available for removal: 7917
+  Running cascade simulations...
+  k_max = 14
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 4"
+Realization 5 (seed 11865894196000964985)...
+  Vertices: 6400, Edges: 16013
+  seed edges available for removal: 8007
+  Running cascade simulations...
+  k_max = 14
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 5"
+Realization 6 (seed 17950187751348045818)...
+  Vertices: 6400, Edges: 15996
+  seed edges available for removal: 7998
+  Running cascade simulations...
+  k_max = 16
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 6"
+Realization 7 (seed 4203144018767745676)...
+  Vertices: 6400, Edges: 15870
+  seed edges available for removal: 7935
+  Running cascade simulations...
+  k_max = 14
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 7"
+Realization 8 (seed 16293198396376081680)...
+  Vertices: 6400, Edges: 15942
+  seed edges available for removal: 7971
+  Running cascade simulations...
+  k_max = 14
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 8"
+Realization 9 (seed 5801369576719901876)...
+  Vertices: 6400, Edges: 16005
+  seed edges available for removal: 8003
+  Running cascade simulations...
+  k_max = 18
+  wrote  Gt Component Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  wrote  Cascade Time Nθ=20, dθ=0.1, θ∈[-1,1] ζ = 8.csv
+  done; results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/realization = 9"
+Done. Results in "results/CSV/L = 80/ζ = 8, k = 5, α = 2/"
+Total time: 278818 s

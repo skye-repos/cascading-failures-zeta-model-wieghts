@@ -1,0 +1,23 @@
+{
+  "base_seed": 12345,
+  "realization_id": 8,
+  "realization_seed": 16293198396376081680,
+  "L": 100,
+  "zeta": 45,
+  "topology": "waxman",
+  "theta_min": -1,
+  "theta_max": 1,
+  "N_theta": 21,
+  "n_theta": 20,
+  "n_pts": 50,
+  "k_avg": 5,
+  "alpha": 2,
+  "p_min": 0.5,
+  "graph": {
+    "n_vertices": 10000,
+    "n_edges": 25046,
+    "k_mean": 5.0092,
+    "k_variance": 4.96651536000008,
+    "k_second_moment": 30.0586
+  }
+}
