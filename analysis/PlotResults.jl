@@ -107,30 +107,6 @@ function select_first_paths(runs)
     return sort(collect(values(selected)))
 end
 
-function plot_pc_heatmaps(pc::DataFrame, out_dir)
-    for topology in sort(unique(pc.topology))
-        df_topo = filter(:topology => ==(topology), pc)
-        for L in sort(unique(df_topo.L))
-            sub = filter(:L => ==(L), df_topo)
-            θs = sort(unique(sub.theta))
-            ζs = sort(unique(sub.zeta))
-            mat = fill(NaN, length(ζs), length(θs))
-            for row in eachrow(sub)
-                iz = findfirst(==(row.zeta), ζs)
-                it = findfirst(==(row.theta), θs)
-                mat[iz, it] = row.p_c
-            end
-
-            suffix = topology == "waxman" ? "" : "_$(topology)"
-            fname = "p_c_heatmap_L=$(L)$(suffix).png"
-            plt = heatmap(θs, ζs, mat,
-                          xlabel = "θ", ylabel = "ζ",
-                          title = "p_c, L=$(L) ($(topology))")
-            savefig(plt, joinpath(out_dir, fname))
-        end
-    end
-end
-
 function regime_label(regime)
     regime == "negative" && return "θ < 0"
     regime == "positive" && return "θ > 0"
@@ -144,14 +120,17 @@ function plot_scaling(df::DataFrame, value_col::Symbol, se_col::Symbol,
         df[!, :regime] = fill("all", nrow(df))
     end
 
+    df = filter(:topology => ==("waxman"), df)
+
     if regime_filter !== nothing
         df = filter(:regime => ==(regime_filter), df)
         isempty(df) && return
     end
 
+    topo_order = sort(String.(unique(df.topology)); by = t -> (t == "ER", t))
     plt = plot()
     if regime_filter === nothing
-        for topology in sort(unique(df.topology))
+        for topology in topo_order
             df_topo = filter(:topology => ==(topology), df)
             for regime in sort(unique(df_topo.regime))
                 sub = filter(:regime => ==(regime), df_topo)
@@ -160,16 +139,22 @@ function plot_scaling(df::DataFrame, value_col::Symbol, se_col::Symbol,
                     regime_label(regime) : "$(topology), $(regime_label(regime))"
                 plot!(plt, sub.L, getproperty(sub, value_col),
                       yerror = getproperty(sub, se_col),
-                      marker = :circle, label = label_str)
+                      seriestype = topology == "ER" ? :scatter : :path,
+                      marker = topology == "ER" ? :diamond : :circle,
+                      markersize = topology == "ER" ? 8 : 4,
+                      label = label_str)
             end
         end
     else
-        for topology in sort(unique(df.topology))
+        for topology in topo_order
             sub = filter(:topology => ==(topology), df)
             sort!(sub, :L)
             plot!(plt, sub.L, getproperty(sub, value_col),
                   yerror = getproperty(sub, se_col),
-                  marker = :circle, label = topology)
+                  seriestype = topology == "ER" ? :scatter : :path,
+                  marker = topology == "ER" ? :diamond : :circle,
+                  markersize = topology == "ER" ? 8 : 4,
+                  label = topology)
         end
     end
 
@@ -178,6 +163,44 @@ function plot_scaling(df::DataFrame, value_col::Symbol, se_col::Symbol,
     title!(plt, regime_filter === nothing ?
         "$(label)(L)" : "$(label)(L), $(regime_label(regime_filter))")
     savefig(plt, joinpath(out_dir, filename))
+end
+
+function plot_variance_scaling(df::DataFrame, value_col::Symbol, se_col::Symbol,
+                               label, base, out_dir)
+    df = copy(df)
+    df = filter(:topology => ==("waxman"), df)
+    df[!, :variance] = getproperty(df, se_col) .^ 2
+
+    function draw(sub, filename, title)
+        isempty(sub) && return
+        topo_order = sort(String.(unique(sub.topology)); by = t -> (t == "ER", t))
+        plt = plot()
+        for topology in topo_order
+            for regime in sort(unique(sub.regime))
+                s = filter(row -> row.topology == topology &&
+                                  row.regime == regime, sub)
+                nrow(s) == 0 && continue
+                sort!(s, :L)
+                prefix = length(topo_order) > 1 ? "$(topology), " : ""
+                plot!(plt, s.L, s.variance,
+                      seriestype = topology == "ER" ? :scatter : :path,
+                      marker = topology == "ER" ? :diamond : :circle,
+                      markersize = topology == "ER" ? 8 : 4,
+                      label = "$(prefix)$(regime_label(regime))")
+            end
+        end
+        xlabel!(plt, "L")
+        ylabel!(plt, "Var($(label)) = SE²")
+        title!(plt, title)
+        savefig(plt, joinpath(out_dir, filename))
+    end
+
+    draw(df, "$(base).png", "Var($(label))(L)")
+    for regime in sort(unique(df.regime))
+        draw(filter(:regime => ==(regime), df),
+             "$(base)_$(regime).png",
+             "Var($(label))(L), $(regime_label(regime))")
+    end
 end
 
 function plot_s_mean_ribbons(S_long::DataFrame, out_dir, ratios, thetas)
@@ -227,321 +250,8 @@ function plot_s_mean_ribbons(S_long::DataFrame, out_dir, ratios, thetas)
     end
 end
 
-function filter_fss_rows(df::DataFrame, ratios, thetas)
-    out = df
-    if !isempty(ratios)
-        keep = [any(isapprox(row.zeta / row.L, r; atol = 1e-9)
-                    for r in ratios) for row in eachrow(out)]
-        out = out[keep, :]
-    end
-    if !isempty(thetas)
-        keep = [any(isapprox(row.theta, t; atol = 1e-6)
-                    for t in thetas) for row in eachrow(out)]
-        out = out[keep, :]
-    end
-    return out
-end
-
 function sem_or_zero(x)
     return length(x) > 1 ? std(x; corrected = true) / sqrt(length(x)) : 0.0
-end
-
-function plot_delta_S_over_sqrtL(pc::DataFrame, out, summary_dir, ratios, thetas)
-    df = filter_fss_rows(pc, ratios, thetas)
-    isempty(df) && return
-
-    df = copy(df)
-    df[!, :regime] = ifelse.(df.theta .< 0, "negative", "positive")
-    df[!, :ratio] = df.zeta ./ df.L
-    df[!, :L_over_zeta] = df.L ./ df.zeta
-
-    g = combine(groupby(df, [:L, :topology, :regime, :ratio, :L_over_zeta]),
-                :delta_S => mean => :delta_S_mean,
-                :delta_S => sem_or_zero => :delta_S_se,
-                nrow => :n)
-    g[!, :delta_S_over_sqrtL] = g.delta_S_mean ./ sqrt.(g.L)
-    g[!, :delta_S_over_sqrtL_se] = g.delta_S_se ./ sqrt.(g.L)
-    sort!(g, [:regime, :topology, :L_over_zeta, :L])
-
-    multi_topology = length(unique(g.topology)) > 1
-
-    plt = plot()
-    for topology in sort(unique(g.topology))
-        for regime in sort(unique(g.regime))
-            for lz in sort(unique(g.L_over_zeta))
-                sub = filter(row -> row.topology == topology &&
-                                    row.regime == regime &&
-                                    row.L_over_zeta == lz, g)
-                nrow(sub) < 2 && continue
-                sort!(sub, :L)
-                prefix = multi_topology ? "$(topology), " : ""
-                plot!(plt, sub.L, sub.delta_S_over_sqrtL,
-                      yerror = sub.delta_S_over_sqrtL_se,
-                      marker = :circle,
-                      label = "$(prefix)$(regime_label(regime)), L/ζ=$(round(lz, digits=2))")
-            end
-        end
-    end
-    xlabel!(plt, "L")
-    ylabel!(plt, "ΔS / √L")
-    title!(plt, "ΔS/√L at fixed L/ζ")
-    savefig(plt, joinpath(summary_dir, "delta_S_over_sqrtL.png"))
-
-    for regime in sort(unique(g.regime))
-        plt = plot()
-        for topology in sort(unique(g.topology))
-            for lz in sort(unique(g.L_over_zeta))
-                sub = filter(row -> row.topology == topology &&
-                                    row.regime == regime &&
-                                    row.L_over_zeta == lz, g)
-                nrow(sub) < 2 && continue
-                sort!(sub, :L)
-                prefix = multi_topology ? "$(topology), " : ""
-                plot!(plt, sub.L, sub.delta_S_over_sqrtL,
-                      yerror = sub.delta_S_over_sqrtL_se,
-                      marker = :circle,
-                      label = "$(prefix)L/ζ=$(round(lz, digits=2))")
-            end
-        end
-        xlabel!(plt, "L")
-        ylabel!(plt, "ΔS / √L")
-        title!(plt, "ΔS/√L, $(regime_label(regime))")
-        savefig(plt, joinpath(summary_dir, "delta_S_over_sqrtL_$(regime).png"))
-    end
-
-    plt = plot()
-    for topology in sort(unique(g.topology))
-        for regime in sort(unique(g.regime))
-            for L in sort(unique(g.L))
-                sub = filter(row -> row.topology == topology &&
-                                    row.regime == regime &&
-                                    row.L == L, g)
-                nrow(sub) == 0 && continue
-                sort!(sub, :L_over_zeta)
-                prefix = multi_topology ? "$(topology) " : ""
-                plot!(plt, sub.L_over_zeta, sub.delta_S_over_sqrtL,
-                      yerror = sub.delta_S_over_sqrtL_se,
-                      seriestype = :scatter, marker = :circle,
-                      label = "$(prefix)$(regime_label(regime)), L=$(L)")
-            end
-        end
-    end
-    xlabel!(plt, "L/ζ")
-    ylabel!(plt, "ΔS / √L")
-    title!(plt, "ΔS/√L vs L/ζ")
-    savefig(plt, joinpath(summary_dir, "delta_S_over_sqrtL_vs_Lzeta.png"))
-
-    CSV.write(joinpath(out, "delta_S_over_sqrtL.csv"), g)
-    println("  Wrote ΔS/√L scaling to $(joinpath(out, "delta_S_over_sqrtL.csv"))")
-end
-
-function fit_scaling_alpha(df::DataFrame)
-    best_rss = Inf
-    best_alpha = 0.0
-    ratios = sort(unique(df.ratio))
-    for alpha in range(-1.0, 2.0; length = 6001)
-        rss = 0.0
-        for r in ratios
-            s = filter(:ratio => ==(r), df)
-            z = log.(s.y) .- alpha .* log.(s.L)
-            rss += sum((z .- mean(z)) .^ 2)
-        end
-        if rss < best_rss
-            best_rss = rss
-            best_alpha = alpha
-        end
-    end
-    return best_alpha, best_rss
-end
-
-function plot_delta_S_scaling(pc::DataFrame, out, summary_dir, ratios, thetas)
-    df = filter_fss_rows(pc, ratios, thetas)
-    isempty(df) && return
-
-    df = copy(df)
-    df[!, :regime] = ifelse.(df.theta .< 0, "negative", "positive")
-    df[!, :ratio] = df.zeta ./ df.L
-    df = df[df.delta_S .> 0, :]
-
-    g = combine(groupby(df, [:L, :topology, :regime, :ratio]),
-                :delta_S => mean => :y,
-                :delta_S => sem_or_zero => :se,
-                nrow => :n)
-    g = g[g.y .> 0, :]
-
-    multi_topology = length(unique(g.topology)) > 1
-    fit_rows = NamedTuple[]
-    data_rows = NamedTuple[]
-
-    for topology in sort(unique(g.topology))
-        for regime in sort(unique(g.regime))
-            sub = filter(row -> row.topology == topology && row.regime == regime, g)
-            nrow(sub) >= 4 || continue
-
-            alpha, rss = fit_scaling_alpha(sub)
-            sub = copy(sub)
-            sub[!, :x] = 1.0 ./ sub.ratio
-            sub[!, :scaled] = sub.y ./ (sub.L .^ alpha)
-            sub[!, :scaled_se] = sub.se ./ (sub.L .^ alpha)
-
-            rs = sort(unique(sub.ratio), by = r -> 1.0 / r)
-            xs = 1.0 ./ rs
-            fvals = [exp(mean(log.(filter(:ratio => ==(r), sub).scaled))) for r in rs]
-
-            for row in eachrow(sub)
-                fidx = findfirst(==(row.ratio), rs)
-                push!(data_rows, (
-                    L = row.L,
-                    topology = topology,
-                    regime = regime,
-                    ratio = row.ratio,
-                    L_over_zeta = row.x,
-                    delta_S_mean = row.y,
-                    delta_S_se = row.se,
-                    alpha = alpha,
-                    f_of_x = fvals[fidx],
-                    scaled_delta_S = row.scaled,
-                    scaled_delta_S_se = row.scaled_se,
-                ))
-            end
-
-            log_rms = sqrt(rss / nrow(sub))
-            push!(fit_rows, (
-                topology = topology,
-                regime = regime,
-                alpha = alpha,
-                log_rms = log_rms,
-                pct_scatter = 100.0 * (exp(log_rms) - 1.0),
-                n_points = nrow(sub),
-            ))
-
-            plt = plot()
-            for L in sort(unique(sub.L))
-                s = filter(:L => ==(L), sub)
-                sort!(s, :x)
-                plot!(plt, s.x, s.scaled, yerror = s.scaled_se,
-                      seriestype = :scatter, marker = :circle,
-                      label = "L=$(L)")
-            end
-            plot!(plt, xs, fvals, marker = :diamond, lw = 2,
-                  label = "f(L/ζ)")
-            plot!(plt, xscale = :log10)
-            xlabel!(plt, "L/ζ")
-            ylabel!(plt, "ΔS / L^α")
-            title!(plt, "ΔS scaling, $(regime_label(regime)) " *
-                        "(α=$(round(alpha, digits = 3)))")
-            suffix = multi_topology ? "_$(topology)" : ""
-            savefig(plt, joinpath(summary_dir,
-                    "delta_S_scaling_$(regime)$(suffix).png"))
-        end
-    end
-
-    isempty(fit_rows) && return
-    CSV.write(joinpath(out, "delta_S_scaling_fit.csv"), DataFrame(fit_rows))
-    CSV.write(joinpath(out, "delta_S_scaling.csv"), DataFrame(data_rows))
-    println("  Wrote ΔS scaling fit to $(joinpath(out, "delta_S_scaling_fit.csv"))")
-end
-
-function plot_delta_S_scaling_zeta(pc::DataFrame, out, summary_dir, ratios, thetas)
-    df = filter_fss_rows(pc, ratios, thetas)
-    isempty(df) && return
-
-    df = copy(df)
-    df[!, :regime] = ifelse.(df.theta .< 0, "negative", "positive")
-    df[!, :ratio] = df.zeta ./ df.L
-    df = df[df.delta_S .> 0, :]
-
-    g = combine(groupby(df, [:L, :topology, :regime, :ratio]),
-                :delta_S => mean => :y,
-                :delta_S => sem_or_zero => :se,
-                nrow => :n)
-    g = g[g.y .> 0, :]
-    g[!, :x] = 1.0 ./ g.ratio
-
-    fit_rows = NamedTuple[]
-    data_rows = NamedTuple[]
-    multi_topology = length(unique(g.topology)) > 1
-
-    for topology in sort(unique(g.topology))
-        for regime in sort(unique(g.regime))
-            sub = filter(row -> row.topology == topology && row.regime == regime, g)
-            nrow(sub) >= 4 || continue
-
-            X = hcat(ones(nrow(sub)), log.(sub.L), log.(sub.x))
-            coef = X \ log.(sub.y)
-            fitted = X * coef
-            r2 = 1.0 - sum((log.(sub.y) .- fitted) .^ 2) /
-                       sum((log.(sub.y) .- mean(log.(sub.y))) .^ 2)
-            rmse = sqrt(mean((log.(sub.y) .- fitted) .^ 2))
-            alpha = coef[2]
-            beta = coef[3]
-            A = exp(coef[1])
-
-            sub = copy(sub)
-            sub[!, :alpha] = fill(alpha, nrow(sub))
-            sub[!, :beta] = fill(beta, nrow(sub))
-            sub[!, :A] = fill(A, nrow(sub))
-            sub[!, :scaled] = sub.y ./ (sub.L .^ alpha)
-            sub[!, :scaled_se] = sub.se ./ (sub.L .^ alpha)
-
-            for row in eachrow(sub)
-                push!(data_rows, (
-                    L = row.L,
-                    topology = topology,
-                    regime = regime,
-                    ratio = row.ratio,
-                    L_over_zeta = row.x,
-                    delta_S_mean = row.y,
-                    delta_S_se = row.se,
-                    alpha = alpha,
-                    beta = beta,
-                    A = A,
-                    scaled_delta_S = row.scaled,
-                    scaled_delta_S_se = row.scaled_se,
-                    fitted_scaled = A * row.x^beta,
-                ))
-            end
-
-            push!(fit_rows, (
-                topology = topology,
-                regime = regime,
-                alpha = alpha,
-                beta = beta,
-                A = A,
-                R2 = r2,
-                log_rmse = rmse,
-                n_points = nrow(sub),
-            ))
-
-            plt = plot()
-            for L in sort(unique(sub.L))
-                s = filter(:L => ==(L), sub)
-                sort!(s, :x)
-                plot!(plt, s.x, s.scaled, yerror = s.scaled_se,
-                      seriestype = :scatter, marker = :circle,
-                      label = "L=$(L)")
-            end
-            xs_grid = exp.(range(log(minimum(sub.x)), log(maximum(sub.x));
-                                length = 100))
-            plot!(plt, xs_grid, A .* xs_grid .^ beta, lw = 2,
-                  label = "A (L/ζ)^β")
-            plot!(plt, xscale = :log10)
-            xlabel!(plt, "L/ζ")
-            ylabel!(plt, "ΔS / L^α")
-            title!(plt, "ζ-dependent ΔS scaling, $(regime_label(regime)) " *
-                        "(α=$(round(alpha, digits = 3)), " *
-                        "β=$(round(beta, digits = 3)))")
-            suffix = multi_topology ? "_$(topology)" : ""
-            savefig(plt, joinpath(summary_dir,
-                    "delta_S_scaling_zeta_$(regime)$(suffix).png"))
-        end
-    end
-
-    isempty(fit_rows) && return
-    CSV.write(joinpath(out, "delta_S_scaling_zeta_fit.csv"), DataFrame(fit_rows))
-    CSV.write(joinpath(out, "delta_S_scaling_zeta.csv"), DataFrame(data_rows))
-    println("  Wrote ζ-dependent ΔS scaling fit to " *
-            "$(joinpath(out, "delta_S_scaling_zeta_fit.csv"))")
 end
 
 function run_beta_zeta(; fit_file, out, plot_dir)
@@ -698,23 +408,17 @@ function run_summary_plots(out, plot_dir, ratios, thetas)
     summary_dir = joinpath(plot_dir, "summary")
     mkpath(summary_dir)
 
-    pc_path = joinpath(out, "p_c_summary.csv")
     beta_path = joinpath(out, "beta_vs_L.csv")
     delta_path = joinpath(out, "delta_S_vs_L.csv")
     s_path = joinpath(out, "S_mean.csv")
-    for path in (pc_path, beta_path, delta_path, s_path)
+    for path in (beta_path, delta_path, s_path)
         isfile(path) || error("missing $path; run aggregate and fss first")
     end
 
-    pc = CSV.read(pc_path, DataFrame)
     beta = CSV.read(beta_path, DataFrame)
     delta = CSV.read(delta_path, DataFrame)
     S_long = CSV.read(s_path, DataFrame)
 
-    plot_pc_heatmaps(pc, summary_dir)
-    plot_delta_S_over_sqrtL(pc, out, summary_dir, ratios, thetas)
-    plot_delta_S_scaling(pc, out, summary_dir, ratios, thetas)
-    plot_delta_S_scaling_zeta(pc, out, summary_dir, ratios, thetas)
     plot_scaling(beta, :beta_mean, :beta_se, "β", "beta_vs_L.png", summary_dir)
     plot_scaling(delta, :delta_S_mean, :delta_S_se, "ΔS",
                  "delta_S_vs_L.png", summary_dir)
@@ -726,6 +430,18 @@ function run_summary_plots(out, plot_dir, ratios, thetas)
                      "delta_S_vs_L_$regime.png", summary_dir;
                      regime_filter = regime)
     end
+    beta_var = copy(filter(:topology => ==("waxman"), beta))
+    beta_var[!, :beta_variance] = beta_var.beta_se .^ 2
+    CSV.write(joinpath(out, "beta_variance_vs_L.csv"), beta_var)
+    plot_variance_scaling(beta, :beta_mean, :beta_se, "β",
+                          "beta_variance_vs_L", summary_dir)
+
+    delta_var = copy(filter(:topology => ==("waxman"), delta))
+    delta_var[!, :delta_S_variance] = delta_var.delta_S_se .^ 2
+    CSV.write(joinpath(out, "delta_S_variance_vs_L.csv"), delta_var)
+    plot_variance_scaling(delta, :delta_S_mean, :delta_S_se, "ΔS",
+                          "delta_S_variance_vs_L", summary_dir)
+
     plot_s_mean_ribbons(S_long, summary_dir, ratios, thetas)
     println("  Summary plots written to $summary_dir")
 end
