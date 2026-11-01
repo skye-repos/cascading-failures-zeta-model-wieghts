@@ -10,7 +10,7 @@ using Plots
 
 using ..PCUtils
 
-export run_plots, run_beta_zeta
+export run_plots, run_beta_zeta, run_aggregate_mean_plots
 
 function parse_results(results_dir)
     data = Dict{String,Tuple{Vector{Float64},Vector{Float64},Matrix{Float64},Vector{String}}}()
@@ -404,6 +404,196 @@ function run_beta_zeta(; fit_file, out, plot_dir)
             "$(joinpath(out, "beta_zeta_test.csv"))")
 end
 
+function group_dirname(plot_dir, L, ζ, topology)
+    suffix = topology == "ER" ? ", topology = ER" : ""
+    return joinpath(plot_dir, "L = $L", "ζ = $ζ" * suffix)
+end
+
+function group_title(L, ζ, topology)
+    return topology == "ER" ? "L=$(L), ER" : "L=$(L), ζ=$(ζ)"
+end
+
+function plot_s_theta(s, pc_row, L, ζ, θ, topology, outpath)
+    sort!(s, :p)
+    plt = plot(s.p, s.S_mean, ribbon = max.(s.S_sem, 0.0),
+               fillalpha = 0.25, linewidth = 1.5, color = :dodgerblue,
+               label = "mean ± SEM")
+    if pc_row !== nothing && isfinite(pc_row.p_c)
+        vline!(plt, [pc_row.p_c], linestyle = :dash, color = :firebrick,
+               label = "p_c=$(round(pc_row.p_c, digits = 3))")
+    end
+    xlabel!(plt, "p")
+    ylabel!(plt, "S")
+    n = pc_row === nothing ? 10 : pc_row.n_realizations
+    title!(plt, "S(p), $(group_title(L, ζ, topology)), θ=$(round(θ, digits = 2)), n=$(n)")
+    savefig(plt, outpath)
+end
+
+function plot_s_comparison(sub, L, ζ, topology, outpath)
+    θs = sort(unique(sub.theta))
+    colors = Plots.palette(:viridis, length(θs))
+    plt = plot()
+    for (i, θ) in enumerate(θs)
+        s = filter(:theta => x -> isapprox(x, θ; atol = 1e-9), sub)
+        sort!(s, :p)
+        plot!(plt, s.p, s.S_mean, ribbon = max.(s.S_sem, 0.0),
+              fillalpha = 0.08, linewidth = 1.2, color = colors[i],
+              label = "θ=$(round(θ, digits = 2))")
+    end
+    xlabel!(plt, "p")
+    ylabel!(plt, "S")
+    title!(plt, "S(p) mean ± SEM, $(group_title(L, ζ, topology))")
+    savefig(plt, outpath)
+end
+
+function plot_s_heatmap(sub, L, ζ, topology, outpath)
+    θs = sort(unique(sub.theta))
+    pvals = sort(unique(sub.p))
+    mat = fill(NaN, length(θs), length(pvals))
+    for row in eachrow(sub)
+        i = findfirst(x -> isapprox(x, row.theta; atol = 1e-9), θs)
+        j = findfirst(x -> isapprox(x, row.p; atol = 1e-12), pvals)
+        (i === nothing || j === nothing) && continue
+        mat[i, j] = row.S_mean
+    end
+    plt = heatmap(pvals, θs, mat, xlabel = "p", ylabel = "θ",
+                  color = :viridis,
+                  title = "S(p) mean, $(group_title(L, ζ, topology))")
+    savefig(plt, outpath)
+end
+
+function plot_pc_vs_theta(pc_sub, L, ζ, topology, outpath)
+    sort!(pc_sub, :theta)
+    plt = plot(pc_sub.theta, pc_sub.p_c, yerror = pc_sub.p_c_se,
+               marker = :circle, markersize = 3, linewidth = 1.2,
+               color = :firebrick, label = "p_c ± SE")
+    xlabel!(plt, "θ")
+    ylabel!(plt, "p_c")
+    title!(plt, "p_c(θ), $(group_title(L, ζ, topology))")
+    savefig(plt, outpath)
+end
+
+function plot_cascade_comparison(group_dir, L, ζ, topology, outpath)
+    isdir(group_dir) || return
+    mean_path = find_file(group_dir, "Cascade Time mean")
+    mean_path === nothing && return
+    θs, p, T = read_s_matrix(mean_path)
+    sem_path = find_file(group_dir, "Cascade Time sem")
+    T_sem = sem_path === nothing ? zeros(size(T)) :
+            read_s_matrix(sem_path)[3]
+
+    colors = Plots.palette(:viridis, length(θs))
+    plt = plot()
+    for (i, θ) in enumerate(θs)
+        plot!(plt, p, T[i, :], ribbon = max.(T_sem[i, :], 0.0),
+              fillalpha = 0.08, linewidth = 1.2, color = colors[i],
+              label = "θ=$(round(θ, digits = 2))")
+    end
+    xlabel!(plt, "p")
+    ylabel!(plt, "Cascade Time")
+    title!(plt, "Cascade time mean ± SEM, $(group_title(L, ζ, topology))")
+    savefig(plt, outpath)
+end
+
+function plot_heatmap_matrix(df, L, topology, value, label, base, out_dir)
+    sub = filter(row -> row.L == L && row.topology == topology, df)
+    isempty(sub) && return
+    ζs = sort(unique(sub.zeta))
+    θs = sort(unique(sub.theta))
+    mat = fill(NaN, length(ζs), length(θs))
+    for row in eachrow(sub)
+        i = findfirst(x -> isapprox(x, row.zeta; atol = 1e-9), ζs)
+        j = findfirst(x -> isapprox(x, row.theta; atol = 1e-9), θs)
+        (i === nothing || j === nothing) && continue
+        mat[i, j] = getproperty(row, value)
+    end
+    plt = heatmap(ζs, θs, permutedims(mat), xlabel = "ζ", ylabel = "θ",
+                  color = :viridis,
+                  title = "$(label), L=$L")
+    suffix = topology == "ER" ? "_ER" : ""
+    savefig(plt, joinpath(out_dir, "$(base)$(suffix).png"))
+end
+
+function run_aggregate_mean_plots(; out, plot_dir, ratios = Float64[],
+                                  thetas = Float64[], L_values = Int[])
+    s_path = joinpath(out, "S_mean.csv")
+    pc_path = joinpath(out, "p_c_summary.csv")
+    isfile(s_path) || error("missing $s_path; run aggregate first")
+
+    S_long = CSV.read(s_path, DataFrame)
+    pc = isfile(pc_path) ? CSV.read(pc_path, DataFrame) : DataFrame()
+
+    if !isempty(L_values)
+        S_long = filter(:L => x -> x in L_values, S_long)
+        isempty(pc) || (pc = filter(:L => x -> x in L_values, pc))
+    end
+    if !isempty(thetas)
+        S_long = filter(:theta => x -> any(t -> isapprox(x, t; atol = 1e-9), thetas),
+                        S_long)
+        isempty(pc) || (pc = filter(:theta => x -> any(t -> isapprox(x, t; atol = 1e-9), thetas),
+                                    pc))
+    end
+    if !isempty(ratios)
+        S_long = filter(row -> any(r -> isapprox(row.zeta / row.L, r; atol = 1e-9), ratios),
+                        S_long)
+        isempty(pc) || (pc = filter(row -> any(r -> isapprox(row.zeta / row.L, r; atol = 1e-9), ratios),
+                                    pc))
+    end
+    isempty(S_long) && error("no aggregate S(p) rows selected")
+
+    means_dir = joinpath(plot_dir, "means")
+    keys_present = unique([(row.L, row.zeta, row.topology) for row in eachrow(S_long)])
+    sort!(keys_present; by = k -> (k[1], k[3], k[2]))
+
+    for (L, ζ, topology) in keys_present
+        sub = filter(row -> row.L == L &&
+                             isapprox(row.zeta, ζ; atol = 1e-9) &&
+                             row.topology == topology, S_long)
+        pc_sub = isempty(pc) ? DataFrame() :
+                 filter(row -> row.L == L &&
+                               isapprox(row.zeta, ζ; atol = 1e-9) &&
+                               row.topology == topology, pc)
+        dir = group_dirname(means_dir, L, ζ, topology)
+        mkpath(dir)
+
+        plot_s_comparison(sub, L, ζ, topology,
+                          joinpath(dir, "S_mean_comparison_theta.png"))
+        plot_s_heatmap(sub, L, ζ, topology,
+                       joinpath(dir, "S_mean_heatmap_theta.png"))
+        if !isempty(pc_sub)
+            plot_pc_vs_theta(pc_sub, L, ζ, topology,
+                             joinpath(dir, "p_c_vs_theta.png"))
+        end
+        analysis_dir = group_dirname(out, L, ζ, topology)
+        plot_cascade_comparison(analysis_dir, L, ζ, topology,
+                                joinpath(dir, "Cascade_Time_mean_comparison_theta.png"))
+
+        for θ in sort(unique(sub.theta))
+            s = filter(:theta => x -> isapprox(x, θ; atol = 1e-9), sub)
+            pc_row = isempty(pc_sub) ? nothing :
+                     findfirst(row -> isapprox(row.theta, θ; atol = 1e-9),
+                               eachrow(pc_sub))
+            pc_row = pc_row === nothing ? nothing : pc_sub[pc_row, :]
+            fname = "S_mean_theta=$(round(θ, digits = 2)).png"
+            plot_s_theta(s, pc_row, L, ζ, θ, topology, joinpath(dir, fname))
+        end
+    end
+
+    if !isempty(pc)
+        for topology in sort(unique(pc.topology))
+            for L in sort(unique(pc.L))
+                L_dir = joinpath(means_dir, "L = $L")
+                mkpath(L_dir)
+                plot_heatmap_matrix(pc, L, topology, :p_c, "p_c", "p_c_heatmap", L_dir)
+                plot_heatmap_matrix(pc, L, topology, :delta_S, "ΔS",
+                                    "delta_S_heatmap", L_dir)
+            end
+        end
+    end
+
+    println("  Mean plots written to $means_dir")
+end
+
 function run_summary_plots(out, plot_dir, ratios, thetas)
     summary_dir = joinpath(plot_dir, "summary")
     mkpath(summary_dir)
@@ -450,8 +640,14 @@ function run_plots(; root, out, plot_dir, mode = :summary,
                    ratios = Float64[], thetas = Float64[],
                    L_values = Int[])
     mode = Symbol(mode)
-    mode in (:summary, :first, :all, :none) ||
+    mode in (:summary, :means, :first, :all, :none) ||
         error("unknown plot mode: $mode")
+
+    if mode in (:summary, :means, :all)
+        run_aggregate_mean_plots(; out = out, plot_dir = plot_dir,
+                                 ratios = ratios, thetas = thetas,
+                                 L_values = L_values)
+    end
 
     if mode in (:summary, :first, :all)
         run_summary_plots(out, plot_dir, ratios, thetas)

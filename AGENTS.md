@@ -87,8 +87,9 @@ OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
   - `julia --project=analysis analysis/main.jl aggregate`
   - `julia --project=analysis analysis/main.jl fss`
   - `julia --project=analysis analysis/main.jl plots`
+  - `julia --project=analysis analysis/main.jl plots --plots means`
   - `julia --project=analysis analysis/main.jl beta-zeta`
-  - `julia --project=analysis analysis/main.jl all` (aggregate + fss + summary plots + β(ζ) test)
+  - `julia --project=analysis analysis/main.jl all` (aggregate + fss + mean/summary plots + β(ζ) test)
   - Run `all` (or `aggregate`) after new Tier 2 results; `fss` and `plots`
     reuse existing aggregate outputs when present.
 
@@ -118,8 +119,10 @@ containing:
 The p header is the target surviving fraction `linspace(p_min, 1, n_pts)`;
 `round((1-p)*n_e)` links are removed for each target p.
 `julia --project=analysis analysis/main.jl plots --plots first` renders
-per-realization comparison/heatmap PNGs into `results/plots/`; summary plots
-go to `results/plots/summary/`.
+per-realization comparison/heatmap PNGs into `results/plots/`;
+`julia --project=analysis analysis/main.jl plots --plots means` renders
+per-(L, ζ, θ) mean ± SEM plots (averaged over realizations) into
+`results/plots/means/`; summary plots go to `results/plots/summary/`.
 
 ---
 
@@ -221,8 +224,8 @@ backward compatible where possible.
     the fixed window `p_c < p ≤ p_c + 0.1` (never over all `[p_c, 1]`), reports
     the window and fit quality, and computes `beta(L)` and `ΔS(L)` separately
     for the θ < 0 and θ > 0 regimes;
-  - `analysis/PlotResults.jl`, which produces per-realization plots and summary
-    plots.
+  - `analysis/PlotResults.jl`, which produces mean-over-realizations plots
+    (per L, ζ, and θ), per-realization plots, and summary plots.
 - `p_c` is the point where the second-order finite difference has the largest
   jump. Smooth `S(p)` along the p axis first with a Gaussian kernel whose width
   is `sigma_pts * Δp` (default 2 grid points), then compute second differences
@@ -233,7 +236,8 @@ backward compatible where possible.
   universal value and treat any ζ,θ dependence as a finite-size artifact; if it
   drifts without saturation, report β as unresolved. Never force a β(ζ,θ) form.
 - All post-processing is Julia and lives in `analysis/`. Aggregated CSVs and
-  FSS outputs go under `results/analysis/`; summary plots go under
+  FSS outputs go under `results/analysis/`; mean plots go under
+  `results/plots/means/`; summary plots go under
   `results/plots/summary/`. FSS outputs carry a `regime` column and are also
   written as `beta_vs_L_negative.csv`, `beta_vs_L_positive.csv`, and the
   corresponding `delta_S_vs_L_*` files; `fss_report.txt` contains separate

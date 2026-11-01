@@ -34,7 +34,7 @@ Commands:
   all         aggregate + fss + plots (default plot mode: summary)
   aggregate   S(p) mean/SEM, p_c, ΔS, degree summaries
   fss         β(L), ΔS(L), saturation report
-  plots       summary and/or per-realization plots
+  plots       mean-over-realizations, summary, and/or per-realization plots
   beta-zeta   test whether β depends on ζ at fixed L
   test        run p_c unit tests
 
@@ -50,13 +50,14 @@ Options:
   --min-points N      minimum points per β fit (default 3)
   --ratios LIST|all   FSS ratios (default all available: 0.05..0.50)
   --thetas LIST|all   FSS θ values (default all available)
-  --plots MODE        summary, first, all, or none (default summary)
+  --plots MODE        summary, means, first, all, or none (default summary)
   -h, --help          show this message
 
 Examples:
   julia --project=analysis analysis/main.jl all
   julia --project=analysis analysis/main.jl aggregate
   julia --project=analysis analysis/main.jl fss
+  julia --project=analysis analysis/main.jl plots --plots means
   julia --project=analysis analysis/main.jl plots --plots all
   julia --project=analysis analysis/main.jl beta-zeta
   julia --project=analysis analysis/main.jl test
@@ -132,7 +133,7 @@ function parse_args(args)
 
     command in ("all", "aggregate", "fss", "plots", "beta-zeta", "test") ||
         error("unknown command: $command")
-    plot_mode in ("summary", "first", "all", "none") ||
+    plot_mode in ("summary", "means", "first", "all", "none") ||
         error("unknown plot mode: $plot_mode")
 
     return (; command, root, out, plot_dir, sigma_pts, bootstrap, seed,
@@ -199,7 +200,11 @@ function main()
                 ratios = opts.ratios, thetas = opts.thetas)
     elseif opts.command == "plots"
         if opts.plot_mode != "none"
-            ensure_fss(opts)
+            if opts.plot_mode == "means"
+                ensure_aggregate(opts)
+            else
+                ensure_fss(opts)
+            end
         end
         run_plots(; root = opts.root, out = opts.out,
                   plot_dir = opts.plot_dir, mode = Symbol(opts.plot_mode),
