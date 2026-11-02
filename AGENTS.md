@@ -40,6 +40,7 @@ analysis/
   Aggregate.jl          mean/SEM S(p), p_c, ΔS, degree summaries (Julia)
   FSS.jl                finite-size scaling: β(L), ΔS(L), saturation (Julia)
   PlotResults.jl        per-realization + summary plots (Julia)
+  CSVPlots.jl           wide S(p) and ratio-filtered β/ΔS tables for plotting
   PCUtils.jl            shared p_c smoothing/jump routine (Julia)
   test_pc.jl            synthetic-sigmoid unit test for p_c (Julia)
   Project.toml          Julia environment for post-processing
@@ -51,6 +52,7 @@ build/                  cmake build dir (gitignored)
 nohup/                  captured stdout logs
 results/CSV/...         simulation output (gitignored)
 results/analysis/...    aggregated CSVs and FSS outputs (gitignored)
+results/CSV_PLOTS/...   wide S(p) and ratio-filtered β/ΔS tables for plotting
 ```
 
 Use `Graph = boost::adjacency_list<vecS, vecS, undirectedS, no_property,
@@ -91,6 +93,7 @@ OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
   - `julia --project=analysis analysis/main.jl beta-heatmap --L 100`
   - `julia --project=analysis analysis/main.jl s-heatmap --theta -0.5`
   - `julia --project=analysis analysis/main.jl s-heatmap --theta all`
+  - `julia --project=analysis analysis/main.jl csv-plots`
   - `julia --project=analysis analysis/main.jl beta-zeta`
   - `julia --project=analysis analysis/main.jl all` (aggregate + fss + mean/summary plots + β(ζ) test)
   - Run `all` (or `aggregate`) after new Tier 2 results; `fss` and `plots`
@@ -264,6 +267,10 @@ backward compatible where possible.
   over every available θ. Outputs:
   `results/analysis/S_heatmap_L=100_theta=<θ>_ratio_vs_p.csv` and
   `results/plots/summary/S_heatmap_L=100_theta=<θ>_ratio_vs_p.png`.
+- `csv-plots` writes plotting tables to `results/CSV_PLOTS/`: wide
+  `S_mean.csv`/`S_sem.csv` with one p value per column, plus
+  `deltaS_vs_L_ratio=0.05.csv`, `deltaS_vs_L_ratio=0.5.csv`,
+  `deltaS_vs_L_all_zeta.csv` and the corresponding `beta_vs_L_*` files.
 
 ---
 

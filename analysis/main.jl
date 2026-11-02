@@ -2,12 +2,14 @@ include("PCUtils.jl")
 include("Aggregate.jl")
 include("FSS.jl")
 include("PlotResults.jl")
+include("CSVPlots.jl")
 include("test_pc.jl")
 
 using .PCUtils
 using .Aggregate
 using .FSS
 using .PlotResults
+using .CSVPlots
 using .PCTest
 
 const ANALYSIS_DIR = @__DIR__
@@ -37,6 +39,7 @@ Commands:
   plots       mean-over-realizations, summary, and/or per-realization plots
   beta-heatmap  β(ζ, θ) heatmaps, one per regime
   s-heatmap   S(p) heatmap over ζ/L and p at fixed θ (L = 100)
+  csv-plots   export wide S and ratio-filtered β/ΔS tables for plotting
   beta-zeta   test whether β depends on ζ at fixed L
   test        run p_c unit tests
 
@@ -65,6 +68,7 @@ Examples:
   julia --project=analysis analysis/main.jl beta-heatmap --L 100
   julia --project=analysis analysis/main.jl s-heatmap --theta -0.5
   julia --project=analysis analysis/main.jl s-heatmap --theta all
+  julia --project=analysis analysis/main.jl csv-plots
   julia --project=analysis analysis/main.jl beta-zeta
   julia --project=analysis analysis/main.jl test
 """)
@@ -151,7 +155,7 @@ function parse_args(args)
     end
 
     command in ("all", "aggregate", "fss", "plots", "beta-heatmap",
-                "s-heatmap", "beta-zeta", "test") ||
+                "s-heatmap", "csv-plots", "beta-zeta", "test") ||
         error("unknown command: $command")
     plot_mode in ("summary", "means", "first", "all", "none") ||
         error("unknown plot mode: $plot_mode")
@@ -258,6 +262,15 @@ function main()
                                 theta = opts.theta_value, L = 100,
                                 topology = "waxman")
         end
+    elseif opts.command == "csv-plots"
+        ensure_aggregate(opts)
+        if !isfile(joinpath(opts.out, "beta_fits.csv"))
+            run_fss(; root = opts.out, out = opts.out, window = opts.window,
+                    min_points = opts.min_points,
+                    ratios = opts.ratios, thetas = opts.thetas)
+        end
+        run_csv_plots(; analysis_dir = opts.out,
+                      dest = joinpath(dirname(opts.out), "CSV_PLOTS"))
     elseif opts.command == "beta-zeta"
         run_beta_zeta_stage(opts)
     elseif opts.command == "all"
@@ -275,6 +288,8 @@ function main()
                       L_values = opts.L_values)
         end
         run_beta_zeta_stage(opts)
+        run_csv_plots(; analysis_dir = opts.out,
+                      dest = joinpath(dirname(opts.out), "CSV_PLOTS"))
     end
 end
 
