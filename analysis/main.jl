@@ -35,6 +35,8 @@ Commands:
   aggregate   S(p) mean/SEM, p_c, ΔS, degree summaries
   fss         β(L), ΔS(L), saturation report
   plots       mean-over-realizations, summary, and/or per-realization plots
+  beta-heatmap  β(ζ, θ) heatmaps, one per regime
+  s-heatmap   S(p) heatmap over ζ/L and p at fixed θ (L = 100)
   beta-zeta   test whether β depends on ζ at fixed L
   test        run p_c unit tests
 
@@ -50,6 +52,7 @@ Options:
   --min-points N      minimum points per β fit (default 3)
   --ratios LIST|all   FSS ratios (default all available: 0.05..0.50)
   --thetas LIST|all   FSS θ values (default all available)
+  --theta θ|all       fixed θ for s-heatmap (default -0.5)
   --plots MODE        summary, means, first, all, or none (default summary)
   -h, --help          show this message
 
@@ -59,6 +62,9 @@ Examples:
   julia --project=analysis analysis/main.jl fss
   julia --project=analysis analysis/main.jl plots --plots means
   julia --project=analysis analysis/main.jl plots --plots all
+  julia --project=analysis analysis/main.jl beta-heatmap --L 100
+  julia --project=analysis analysis/main.jl s-heatmap --theta -0.5
+  julia --project=analysis analysis/main.jl s-heatmap --theta all
   julia --project=analysis analysis/main.jl beta-zeta
   julia --project=analysis analysis/main.jl test
 """)
@@ -76,7 +82,10 @@ function parse_args(args)
     min_points = 3
     ratios = Float64[]
     thetas = Float64[]
+    theta_value = -0.5
+    theta_all = false
     L_values = [20, 40, 60, 80, 100]
+    L_given = false
     plot_mode = "summary"
 
     i = 1
@@ -98,6 +107,7 @@ function parse_args(args)
             i += 2
         elseif arg == "--L" && i < length(args)
             L_values = parse_int_list(args[i + 1])
+            L_given = true
             i += 2
         elseif arg == "--sigma-pts" && i < length(args)
             sigma_pts = parse(Float64, args[i + 1])
@@ -120,6 +130,15 @@ function parse_args(args)
         elseif arg == "--thetas" && i < length(args)
             thetas = parse_float_list(args[i + 1])
             i += 2
+        elseif arg == "--theta" && i < length(args)
+            val = lowercase(strip(args[i + 1]))
+            if val == "all"
+                theta_all = true
+            else
+                theta_value = parse(Float64, args[i + 1])
+                theta_all = false
+            end
+            i += 2
         elseif arg == "--plots" && i < length(args)
             plot_mode = lowercase(args[i + 1])
             i += 2
@@ -131,13 +150,15 @@ function parse_args(args)
         end
     end
 
-    command in ("all", "aggregate", "fss", "plots", "beta-zeta", "test") ||
+    command in ("all", "aggregate", "fss", "plots", "beta-heatmap",
+                "s-heatmap", "beta-zeta", "test") ||
         error("unknown command: $command")
     plot_mode in ("summary", "means", "first", "all", "none") ||
         error("unknown plot mode: $plot_mode")
 
     return (; command, root, out, plot_dir, sigma_pts, bootstrap, seed,
-            window, min_points, ratios, thetas, L_values, plot_mode)
+            window, min_points, ratios, thetas, theta_value, theta_all,
+            L_values, L_given, plot_mode)
 end
 
 function ensure_aggregate(opts)
@@ -172,6 +193,10 @@ function run_beta_zeta_stage(opts)
             ratios = Float64[], thetas = Float64[])
     run_beta_zeta(; fit_file = joinpath(full_dir, "beta_fits.csv"),
                   out = opts.out, plot_dir = opts.plot_dir)
+    Ls = opts.L_given ? opts.L_values : [100]
+    run_beta_heatmaps(; fit_file = joinpath(full_dir, "beta_fits.csv"),
+                      plot_dir = opts.plot_dir, L_values = Ls,
+                      topology = "waxman")
 end
 
 function main()
@@ -210,6 +235,29 @@ function main()
                   plot_dir = opts.plot_dir, mode = Symbol(opts.plot_mode),
                   ratios = opts.ratios, thetas = opts.thetas,
                   L_values = opts.L_values)
+    elseif opts.command == "beta-heatmap"
+        ensure_aggregate(opts)
+        fit_file = joinpath(opts.out, "beta_fits.csv")
+        if !isfile(fit_file)
+            run_fss(; root = opts.out, out = opts.out, window = opts.window,
+                    min_points = opts.min_points,
+                    ratios = opts.ratios, thetas = opts.thetas)
+        end
+        Ls = opts.L_given ? opts.L_values : [100]
+        run_beta_heatmaps(; fit_file = fit_file, plot_dir = opts.plot_dir,
+                          L_values = Ls, topology = "waxman")
+    elseif opts.command == "s-heatmap"
+        ensure_aggregate(opts)
+        if opts.theta_all
+            run_all_S_ratio_heatmaps(; out = opts.out,
+                                     plot_dir = opts.plot_dir, L = 100,
+                                     topology = "waxman")
+        else
+            run_S_ratio_heatmap(; out = opts.out,
+                                plot_dir = opts.plot_dir,
+                                theta = opts.theta_value, L = 100,
+                                topology = "waxman")
+        end
     elseif opts.command == "beta-zeta"
         run_beta_zeta_stage(opts)
     elseif opts.command == "all"

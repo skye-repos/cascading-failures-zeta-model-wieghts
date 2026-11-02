@@ -88,6 +88,9 @@ OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
   - `julia --project=analysis analysis/main.jl fss`
   - `julia --project=analysis analysis/main.jl plots`
   - `julia --project=analysis analysis/main.jl plots --plots means`
+  - `julia --project=analysis analysis/main.jl beta-heatmap --L 100`
+  - `julia --project=analysis analysis/main.jl s-heatmap --theta -0.5`
+  - `julia --project=analysis analysis/main.jl s-heatmap --theta all`
   - `julia --project=analysis analysis/main.jl beta-zeta`
   - `julia --project=analysis analysis/main.jl all` (aggregate + fss + mean/summary plots + β(ζ) test)
   - Run `all` (or `aggregate`) after new Tier 2 results; `fss` and `plots`
@@ -253,6 +256,14 @@ backward compatible where possible.
   `beta_vs_zeta_over_L_{negative,positive}.png`,
   `beta_vs_L_over_zeta_{negative,positive}.png`, and per-ζ negative-regime
   plots `beta_scaling_zeta=<ζ>_negative.png`.
+- `beta-heatmap` writes β(ζ, θ) heatmaps at a chosen L (default 100) into
+  `results/plots/summary/beta_heatmap_L=<L>_{negative,positive}.png`, one for
+  each regime.
+- `s-heatmap` writes, for a fixed θ at L = 100, a ζ/L vs p heatmap of the
+  giant component `S` averaged over the 10 realizations. `--theta all` loops
+  over every available θ. Outputs:
+  `results/analysis/S_heatmap_L=100_theta=<θ>_ratio_vs_p.csv` and
+  `results/plots/summary/S_heatmap_L=100_theta=<θ>_ratio_vs_p.png`.
 
 ---
 

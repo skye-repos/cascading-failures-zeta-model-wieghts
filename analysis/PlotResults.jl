@@ -10,7 +10,8 @@ using Plots
 
 using ..PCUtils
 
-export run_plots, run_beta_zeta, run_aggregate_mean_plots
+export run_plots, run_beta_zeta, run_aggregate_mean_plots, run_beta_heatmaps,
+       run_S_ratio_heatmap, run_all_S_ratio_heatmaps
 
 function parse_results(results_dir)
     data = Dict{String,Tuple{Vector{Float64},Vector{Float64},Matrix{Float64},Vector{String}}}()
@@ -402,6 +403,112 @@ function run_beta_zeta(; fit_file, out, plot_dir)
 
     println("Wrote β vs ζ diagnostics to " *
             "$(joinpath(out, "beta_zeta_test.csv"))")
+end
+
+function plot_beta_heatmap(fits, L, topology, regime, outpath)
+    sub = filter(row -> row.L == L &&
+                         row.topology == topology &&
+                         row.regime == regime, fits)
+    isempty(sub) && return
+
+    ζs = sort(unique(sub.zeta))
+    θs = sort(unique(sub.theta))
+    mat = fill(NaN, length(θs), length(ζs))
+    for row in eachrow(sub)
+        i = findfirst(x -> isapprox(x, row.theta; atol = 1e-9), θs)
+        j = findfirst(x -> isapprox(x, row.zeta; atol = 1e-9), ζs)
+        (i === nothing || j === nothing) && continue
+        mat[i, j] = row.beta
+    end
+
+    regime_name = regime == "negative" ? "B (θ < 0)" : "A (θ > 0)"
+    topology_name = topology == "ER" ? "ER" : "Waxman"
+    plt = heatmap(ζs, θs, mat,
+                  xlabel = "ζ", ylabel = "θ",
+                  color = :viridis, colorbar_title = "β",
+                  title = "β(ζ, θ), L=$(L), regime $(regime_name), $(topology_name)")
+    savefig(plt, outpath)
+end
+
+function run_beta_heatmaps(; fit_file, plot_dir, L_values = Int[],
+                           topology = "waxman")
+    isfile(fit_file) || error("missing $fit_file; run fss first")
+    fits = CSV.read(fit_file, DataFrame)
+    isempty(L_values) && (L_values = [maximum(fits.L)])
+
+    summary_dir = joinpath(plot_dir, "summary")
+    mkpath(summary_dir)
+    for L in L_values
+        for regime in ("negative", "positive")
+            fname = "beta_heatmap_L=$(L)_$(regime).png"
+            plot_beta_heatmap(fits, L, topology, regime,
+                              joinpath(summary_dir, fname))
+        end
+    end
+    println("  β heatmaps written to $summary_dir")
+end
+
+function run_S_ratio_heatmap(; out, plot_dir, theta, L = 100,
+                             topology = "waxman")
+    s_path = joinpath(out, "S_mean.csv")
+    isfile(s_path) || error("missing $s_path; run aggregate first")
+
+    S_long = CSV.read(s_path, DataFrame)
+    sub = filter(row -> row.L == L &&
+                         row.topology == topology &&
+                         isapprox(row.theta, theta; atol = 1e-9), S_long)
+    isempty(sub) && error("no S(p) rows for L=$L, θ=$theta, topology=$topology")
+
+    sub[!, :ratio] = sub.zeta ./ L
+    ratios = sort(unique(sub.ratio))
+    pvals = sort(unique(sub.p))
+    mat = fill(NaN, length(ratios), length(pvals))
+    for row in eachrow(sub)
+        i = findfirst(x -> isapprox(x, row.ratio; atol = 1e-9), ratios)
+        j = findfirst(x -> isapprox(x, row.p; atol = 1e-12), pvals)
+        (i === nothing || j === nothing) && continue
+        mat[i, j] = row.S_mean
+    end
+
+    θ_label = string(round(theta, digits = 2))
+    mkpath(out)
+    csv_path = joinpath(out,
+                        "S_heatmap_L=$(L)_theta=$(θ_label)_ratio_vs_p.csv")
+    heatmap_df = DataFrame()
+    heatmap_df[!, "ζ/L"] = ratios
+    for (j, pv) in enumerate(pvals)
+        heatmap_df[!, string(pv)] = mat[:, j]
+    end
+    CSV.write(csv_path, heatmap_df)
+
+    summary_dir = joinpath(plot_dir, "summary")
+    mkpath(summary_dir)
+    plt = heatmap(pvals, ratios, mat,
+                  xlabel = "p", ylabel = "ζ/L",
+                  color = :viridis, clims = (0.0, 1.0),
+                  colorbar_title = "S", size = (720, 460),
+                  title = "S(p), L=$(L), θ=$(θ_label), 10-realization mean")
+    png_path = joinpath(summary_dir,
+                        "S_heatmap_L=$(L)_theta=$(θ_label)_ratio_vs_p.png")
+    savefig(plt, png_path)
+
+    println("Wrote $csv_path")
+    println("Wrote $png_path")
+end
+
+function run_all_S_ratio_heatmaps(; out, plot_dir, L = 100,
+                                  topology = "waxman")
+    s_path = joinpath(out, "S_mean.csv")
+    isfile(s_path) || error("missing $s_path; run aggregate first")
+
+    S_long = CSV.read(s_path, DataFrame)
+    sub = filter(row -> row.L == L && row.topology == topology, S_long)
+    isempty(sub) && error("no S(p) rows for L=$L, topology=$topology")
+
+    for theta in sort(unique(sub.theta))
+        run_S_ratio_heatmap(; out = out, plot_dir = plot_dir,
+                            theta = theta, L = L, topology = topology)
+    end
 end
 
 function group_dirname(plot_dir, L, ζ, topology)
