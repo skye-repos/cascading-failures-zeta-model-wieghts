@@ -11,7 +11,7 @@ using Plots
 using ..PCUtils
 
 export run_plots, run_beta_zeta, run_aggregate_mean_plots, run_beta_heatmaps,
-       run_S_ratio_heatmap, run_all_S_ratio_heatmaps
+       run_S_ratio_heatmap, run_all_S_ratio_heatmaps, run_S_theta_heatmap
 
 function parse_results(results_dir)
     data = Dict{String,Tuple{Vector{Float64},Vector{Float64},Matrix{Float64},Vector{String}}}()
@@ -508,6 +508,63 @@ function run_all_S_ratio_heatmaps(; out, plot_dir, L = 100,
     for theta in sort(unique(sub.theta))
         run_S_ratio_heatmap(; out = out, plot_dir = plot_dir,
                             theta = theta, L = L, topology = topology)
+    end
+end
+
+function plot_S_theta_regime(sub, pvals, L, ζ_label, regime, out, plot_dir)
+    rsub = filter(row -> regime == "negative" ? row.theta < 0 : row.theta > 0,
+                  sub)
+    isempty(rsub) && return
+
+    θs = sort(unique(rsub.theta))
+    mat = fill(NaN, length(θs), length(pvals))
+    for row in eachrow(rsub)
+        i = findfirst(x -> isapprox(x, row.theta; atol = 1e-9), θs)
+        j = findfirst(x -> isapprox(x, row.p; atol = 1e-12), pvals)
+        (i === nothing || j === nothing) && continue
+        mat[i, j] = row.S_mean
+    end
+
+    base = "S_heatmap_L=$(L)_zeta=$(ζ_label)_$(regime)_theta_vs_p"
+    heatmap_df = DataFrame()
+    heatmap_df[!, "theta"] = θs
+    for (j, pv) in enumerate(pvals)
+        heatmap_df[!, string(pv)] = mat[:, j]
+    end
+    CSV.write(joinpath(out, base * ".csv"), heatmap_df)
+
+    regime_name = regime == "negative" ? "B (θ < 0)" : "A (θ > 0)"
+    plt = heatmap(pvals, θs, mat,
+                  xlabel = "p", ylabel = "θ",
+                  color = :viridis, clims = (0.0, 1.0),
+                  colorbar_title = "S", size = (760, 460),
+                  title = "S(p, θ) mean, L=$(L), ζ=$(ζ_label), " *
+                          "regime $(regime_name)")
+    png_path = joinpath(plot_dir, "summary", base * ".png")
+    savefig(plt, png_path)
+    println("Wrote $(joinpath(out, base * ".csv"))")
+    println("Wrote $png_path")
+end
+
+function run_S_theta_heatmap(; out, plot_dir, zeta, L = 100,
+                             topology = "waxman")
+    s_path = joinpath(out, "S_mean.csv")
+    isfile(s_path) || error("missing $s_path; run aggregate first")
+
+    S_long = CSV.read(s_path, DataFrame)
+    sub = filter(row -> row.L == L &&
+                         row.topology == topology &&
+                         isapprox(row.zeta, zeta; atol = 1e-9), S_long)
+    isempty(sub) && error("no S(p) rows for L=$L, ζ=$zeta, topology=$topology")
+
+    ζ_label = string(round(zeta, digits = 2))
+    pvals = sort(unique(sub.p))
+    mkpath(out)
+    summary_dir = joinpath(plot_dir, "summary")
+    mkpath(summary_dir)
+
+    for regime in ("negative", "positive")
+        plot_S_theta_regime(sub, pvals, L, ζ_label, regime, out, plot_dir)
     end
 end
 

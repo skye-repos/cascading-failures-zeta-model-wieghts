@@ -39,6 +39,7 @@ Commands:
   plots       mean-over-realizations, summary, and/or per-realization plots
   beta-heatmap  β(ζ, θ) heatmaps, one per regime
   s-heatmap   S(p) heatmap over ζ/L and p at fixed θ (L = 100)
+  s-zeta-heatmap  S(p) heatmaps over p and θ at fixed ζ, split by regime
   csv-plots   export wide S and ratio-filtered β/ΔS tables for plotting
   beta-zeta   test whether β depends on ζ at fixed L
   test        run p_c unit tests
@@ -56,6 +57,7 @@ Options:
   --ratios LIST|all   FSS ratios (default all available: 0.05..0.50)
   --thetas LIST|all   FSS θ values (default all available)
   --theta θ|all       fixed θ for s-heatmap (default -0.5)
+  --zeta ζ            fixed ζ for s-zeta-heatmap (default 15)
   --plots MODE        summary, means, first, all, or none (default summary)
   -h, --help          show this message
 
@@ -68,6 +70,7 @@ Examples:
   julia --project=analysis analysis/main.jl beta-heatmap --L 100
   julia --project=analysis analysis/main.jl s-heatmap --theta -0.5
   julia --project=analysis analysis/main.jl s-heatmap --theta all
+  julia --project=analysis analysis/main.jl s-zeta-heatmap --zeta 15
   julia --project=analysis analysis/main.jl csv-plots
   julia --project=analysis analysis/main.jl beta-zeta
   julia --project=analysis analysis/main.jl test
@@ -88,6 +91,7 @@ function parse_args(args)
     thetas = Float64[]
     theta_value = -0.5
     theta_all = false
+    zeta_value = 15.0
     L_values = [20, 40, 60, 80, 100]
     L_given = false
     plot_mode = "summary"
@@ -143,6 +147,9 @@ function parse_args(args)
                 theta_all = false
             end
             i += 2
+        elseif arg == "--zeta" && i < length(args)
+            zeta_value = parse(Float64, args[i + 1])
+            i += 2
         elseif arg == "--plots" && i < length(args)
             plot_mode = lowercase(args[i + 1])
             i += 2
@@ -155,14 +162,15 @@ function parse_args(args)
     end
 
     command in ("all", "aggregate", "fss", "plots", "beta-heatmap",
-                "s-heatmap", "csv-plots", "beta-zeta", "test") ||
+                "s-heatmap", "s-zeta-heatmap", "csv-plots", "beta-zeta",
+                "test") ||
         error("unknown command: $command")
     plot_mode in ("summary", "means", "first", "all", "none") ||
         error("unknown plot mode: $plot_mode")
 
     return (; command, root, out, plot_dir, sigma_pts, bootstrap, seed,
             window, min_points, ratios, thetas, theta_value, theta_all,
-            L_values, L_given, plot_mode)
+            zeta_value, L_values, L_given, plot_mode)
 end
 
 function ensure_aggregate(opts)
@@ -262,6 +270,11 @@ function main()
                                 theta = opts.theta_value, L = 100,
                                 topology = "waxman")
         end
+    elseif opts.command == "s-zeta-heatmap"
+        ensure_aggregate(opts)
+        run_S_theta_heatmap(; out = opts.out, plot_dir = opts.plot_dir,
+                            zeta = opts.zeta_value, L = 100,
+                            topology = "waxman")
     elseif opts.command == "csv-plots"
         ensure_aggregate(opts)
         if !isfile(joinpath(opts.out, "beta_fits.csv"))

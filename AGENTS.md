@@ -93,6 +93,7 @@ OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
   - `julia --project=analysis analysis/main.jl beta-heatmap --L 100`
   - `julia --project=analysis analysis/main.jl s-heatmap --theta -0.5`
   - `julia --project=analysis analysis/main.jl s-heatmap --theta all`
+  - `julia --project=analysis analysis/main.jl s-zeta-heatmap --zeta 15`
   - `julia --project=analysis analysis/main.jl csv-plots`
   - `julia --project=analysis analysis/main.jl beta-zeta`
   - `julia --project=analysis analysis/main.jl all` (aggregate + fss + mean/summary plots + β(ζ) test)
@@ -267,6 +268,11 @@ backward compatible where possible.
   over every available θ. Outputs:
   `results/analysis/S_heatmap_L=100_theta=<θ>_ratio_vs_p.csv` and
   `results/plots/summary/S_heatmap_L=100_theta=<θ>_ratio_vs_p.png`.
+- `s-zeta-heatmap` writes, for a fixed ζ at L = 100, separate p vs θ heatmaps
+  for regime B (θ < 0) and regime A (θ > 0), averaged over the 10
+  realizations. Outputs:
+  `results/analysis/S_heatmap_L=100_zeta=<ζ>_{negative,positive}_theta_vs_p.csv`
+  and the matching PNGs under `results/plots/summary/`.
 - `csv-plots` writes plotting tables to `results/CSV_PLOTS/`: wide
   `S_mean.csv`/`S_sem.csv` with one p value per column, plus
   `deltaS_vs_L_ratio=0.05.csv`, `deltaS_vs_L_ratio=0.5.csv`,
