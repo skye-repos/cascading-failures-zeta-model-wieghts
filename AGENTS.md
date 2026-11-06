@@ -41,6 +41,7 @@ analysis/
   FSS.jl                finite-size scaling: β(L), ΔS(L), saturation (Julia)
   PlotResults.jl        per-realization + summary plots (Julia)
   CSVPlots.jl           wide S(p) and ratio-filtered β/ΔS tables for plotting
+  PCShift.jl            ζ-averaged p_c(L, θ) and finite-size shift exponent ν
   PCUtils.jl            shared p_c smoothing/jump routine (Julia)
   test_pc.jl            synthetic-sigmoid unit test for p_c (Julia)
   Project.toml          Julia environment for post-processing
@@ -95,6 +96,10 @@ OMP_NUM_THREADS="$(nproc)" ./build/cascade -L 100 -z 15.0 -n 21 \
   - `julia --project=analysis analysis/main.jl s-heatmap --theta all`
   - `julia --project=analysis analysis/main.jl s-zeta-heatmap --zeta 15`
   - `julia --project=analysis analysis/main.jl csv-plots`
+  - `julia --project=analysis analysis/main.jl pc-shift`
+  - `julia --project=analysis analysis/main.jl pc-realization`
+  - `julia --project=analysis analysis/main.jl pc-realization-plots`
+  - `julia --project=analysis analysis/main.jl ratio-plots`
   - `julia --project=analysis analysis/main.jl beta-zeta`
   - `julia --project=analysis analysis/main.jl all` (aggregate + fss + mean/summary plots + β(ζ) test)
   - Run `all` (or `aggregate`) after new Tier 2 results; `fss` and `plots`
@@ -277,6 +282,37 @@ backward compatible where possible.
   `S_mean.csv`/`S_sem.csv` with one p value per column, plus
   `deltaS_vs_L_ratio=0.05.csv`, `deltaS_vs_L_ratio=0.5.csv`,
   `deltaS_vs_L_all_zeta.csv` and the corresponding `beta_vs_L_*` files.
+- `pc-shift` averages the `p_c` values from `p_c_summary.csv` over ζ for each
+  L and θ and writes `pc_L_vs_theta.csv` (rows θ, columns L) to
+  `results/CSV_PLOTS/`. It fits the shift using both a largest-L `p_c(∞)` proxy
+  and a `1/L` extrapolation, writes `pc_shift_nu.csv` and
+  `pc_shift_nu_crosscheck.csv`, and produces one `pc_shift_theta=<θ>.png`
+  plot per θ plus `pc_shift_nu_vs_theta.png` under `results/plots/summary/`.
+- `pc-realization` recomputes `p_c`, β, and ΔS per realization from the raw
+  CSVs, averages them, and writes the per-realization tables to
+  `results/CSV_PLOTS/`: `pc_realization_L_vs_theta.csv`,
+  `pc_realization_L_vs_theta_long.csv`, `pc_realization_raw.csv`,
+  `nu_realization.csv`, `nu_realization_crosscheck.csv`,
+  `nu_comparison_by_theta.csv`, `nu_source_summary.csv`,
+  `beta_vs_L.csv`, `beta_vs_L_{negative,positive}.csv`,
+  `beta_realization_vs_L.csv`, `beta_realization_by_theta.csv`,
+  `beta_realization_raw.csv`, `beta_source_comparison.csv`,
+  `deltaS_vs_L.csv`, `deltaS_vs_L_{negative,positive}.csv`,
+  `deltaS_realization_vs_L.csv`, `deltaS_realization_by_theta.csv`,
+  `deltaS_realization_raw.csv`, and `deltaS_source_comparison.csv`.
+- `pc-realization-plots` reads those tables and writes per-θ
+  `pc_shift_realization_theta=<θ>.png` and
+  `pc_L_summary_vs_realization_theta=<θ>.png` plots, plus
+  `pc_shift_nu_comparison.png`, `beta_vs_L_summary_vs_realization.png`,
+  `deltaS_vs_L_summary_vs_realization.png`,
+  `beta_vs_L_per_realization{,_negative,_positive}.png`, and
+  `deltaS_vs_L_per_realization{,_negative,_positive}.png`, under
+  `results/plots/summary/`.
+- `ratio-plots` recomputes per-realization β and ΔS only for ζ/L = 0.05 and
+  0.5 and writes `beta_vs_L_ratio=0.05.csv`, `beta_vs_L_ratio=0.5.csv`,
+  `deltaS_vs_L_ratio=0.05.csv`, `deltaS_vs_L_ratio=0.5.csv`, and
+  `nu_vs_theta.csv` to `results/CSV_PLOTS/`, with matching plots under
+  `results/plots/summary/`.
 
 ---
 

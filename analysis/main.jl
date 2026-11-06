@@ -3,6 +3,7 @@ include("Aggregate.jl")
 include("FSS.jl")
 include("PlotResults.jl")
 include("CSVPlots.jl")
+include("PCShift.jl")
 include("test_pc.jl")
 
 using .PCUtils
@@ -10,6 +11,7 @@ using .Aggregate
 using .FSS
 using .PlotResults
 using .CSVPlots
+using .PCShift
 using .PCTest
 
 const ANALYSIS_DIR = @__DIR__
@@ -41,6 +43,10 @@ Commands:
   s-heatmap   S(p) heatmap over ζ/L and p at fixed θ (L = 100)
   s-zeta-heatmap  S(p) heatmaps over p and θ at fixed ζ, split by regime
   csv-plots   export wide S and ratio-filtered β/ΔS tables for plotting
+  pc-shift    average p_c over ζ and fit the finite-size shift exponent ν
+  pc-realization  per-realization p_c and β tables, with ν comparison
+  pc-realization-plots  plots from the per-realization tables
+  ratio-plots  β/ΔS at ζ/L = 0.05 and 0.5, plus ν(θ), per realization
   beta-zeta   test whether β depends on ζ at fixed L
   test        run p_c unit tests
 
@@ -72,6 +78,10 @@ Examples:
   julia --project=analysis analysis/main.jl s-heatmap --theta all
   julia --project=analysis analysis/main.jl s-zeta-heatmap --zeta 15
   julia --project=analysis analysis/main.jl csv-plots
+  julia --project=analysis analysis/main.jl pc-shift
+  julia --project=analysis analysis/main.jl pc-realization
+  julia --project=analysis analysis/main.jl pc-realization-plots
+  julia --project=analysis analysis/main.jl ratio-plots
   julia --project=analysis analysis/main.jl beta-zeta
   julia --project=analysis analysis/main.jl test
 """)
@@ -162,8 +172,9 @@ function parse_args(args)
     end
 
     command in ("all", "aggregate", "fss", "plots", "beta-heatmap",
-                "s-heatmap", "s-zeta-heatmap", "csv-plots", "beta-zeta",
-                "test") ||
+                "s-heatmap", "s-zeta-heatmap", "csv-plots", "pc-shift",
+                "pc-realization", "pc-realization-plots", "ratio-plots",
+                "beta-zeta", "test") ||
         error("unknown command: $command")
     plot_mode in ("summary", "means", "first", "all", "none") ||
         error("unknown plot mode: $plot_mode")
@@ -284,6 +295,27 @@ function main()
         end
         run_csv_plots(; analysis_dir = opts.out,
                       dest = joinpath(dirname(opts.out), "CSV_PLOTS"))
+    elseif opts.command == "pc-shift"
+        ensure_aggregate(opts)
+        run_pc_shift(; analysis_dir = opts.out,
+                     dest = joinpath(dirname(opts.out), "CSV_PLOTS"),
+                     plot_dir = opts.plot_dir)
+    elseif opts.command == "pc-realization"
+        ensure_aggregate(opts)
+        run_pc_shift_realization(;
+            raw_root = opts.root, analysis_dir = opts.out,
+            dest = joinpath(dirname(opts.out), "CSV_PLOTS"))
+    elseif opts.command == "pc-realization-plots"
+        ensure_aggregate(opts)
+        run_pc_realization_plots(;
+            analysis_dir = opts.out,
+            dest = joinpath(dirname(opts.out), "CSV_PLOTS"),
+            plot_dir = opts.plot_dir)
+    elseif opts.command == "ratio-plots"
+        run_ratio_plots(;
+            raw_root = opts.root, analysis_dir = opts.out,
+            dest = joinpath(dirname(opts.out), "CSV_PLOTS"),
+            plot_dir = opts.plot_dir)
     elseif opts.command == "beta-zeta"
         run_beta_zeta_stage(opts)
     elseif opts.command == "all"
@@ -303,6 +335,9 @@ function main()
         run_beta_zeta_stage(opts)
         run_csv_plots(; analysis_dir = opts.out,
                       dest = joinpath(dirname(opts.out), "CSV_PLOTS"))
+        run_pc_shift(; analysis_dir = opts.out,
+                     dest = joinpath(dirname(opts.out), "CSV_PLOTS"),
+                     plot_dir = opts.plot_dir)
     end
 end
 

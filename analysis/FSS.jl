@@ -5,7 +5,7 @@ using DataFrames
 using LinearAlgebra
 using Statistics
 
-export run_fss
+export run_fss, fit_beta
 
 function fit_beta(p, S, p_c, p_index, window, min_points)
     baseline = S[p_index]
