@@ -1,0 +1,31 @@
+p_c(theta) fits at L = 100 ONLY (Waxman graph)
+===============================================
+
+p_c values are taken from p_c_summary.csv, i.e. p_c is found from the
+realization-averaged S(p) for each (L = 100, zeta, theta).
+Only L = 100 is used.
+
+Fit data:
+  Regime B: theta < 0, n = 100 (10 theta x 10 zeta)
+  Regime A: theta > 0, n = 100 (10 theta x 10 zeta)
+
+Regime B (linear):
+  p_c(theta) = a + b theta
+
+  a = 0.6732649204 +/- 0.0013797700
+  b = 0.0333949129 +/- 0.0022237000
+
+  R^2  = 0.697094
+  RMSE = 0.006323
+  n    = 100
+
+Regime A (quadratic):
+  p_c(theta) = a + b theta + c theta^2
+
+  a = 0.6781630050 +/- 0.0030153800
+  b = -0.1915893297 +/- 0.0125935100
+  c = 0.2813855739 +/- 0.0111573700
+
+  R^2  = 0.960868
+  RMSE = 0.007985
+  n    = 100
